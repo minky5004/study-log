@@ -38,6 +38,20 @@ class StudySessionTimeTest {
     }
 
     @Test
+    @DisplayName("1분 미만 세션은 0분 — 초 단위 차이를 자정 넘김으로 오인하지 않음")
+    void subMinuteSessionIsZero() {
+        assertThat(StudySessionTime.durationMinutes(LocalTime.of(9, 0, 0), LocalTime.of(9, 0, 30)))
+                .isZero();
+    }
+
+    @Test
+    @DisplayName("초 단위로만 역전된 세션도 익일 간주")
+    void subMinuteBackwardCrossesMidnight() {
+        assertThat(StudySessionTime.durationMinutes(LocalTime.of(9, 0, 30), LocalTime.of(9, 0, 0)))
+                .isEqualTo(24 * 60);
+    }
+
+    @Test
     @DisplayName("시작과 종료가 같으면 0분인지 24시간인지 정할 수 없으므로 거부")
     void sameTimeRejected() {
         assertThatThrownBy(() ->

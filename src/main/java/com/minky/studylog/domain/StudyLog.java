@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.hibernate.annotations.BatchSize;
@@ -136,8 +137,12 @@ public class StudyLog {
         return category;
     }
 
+    /**
+     * 입력 순서를 유지한 채 복사해 돌려준다. {@code Set.copyOf} 는 순회 순서를 보장하지
+     * 않아 화면마다 태그 순서가 흔들리고, 원소가 null 이면 조회 자체가 NPE 로 죽는다.
+     */
     public Set<String> getTags() {
-        return Set.copyOf(tags);
+        return Collections.unmodifiableSet(new LinkedHashSet<>(tags));
     }
 
     public String getSummary() {

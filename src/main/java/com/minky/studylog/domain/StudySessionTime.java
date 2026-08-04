@@ -22,6 +22,8 @@ public final class StudySessionTime {
             throw new IllegalArgumentException("시작 시각과 종료 시각이 같을 수 없음");
         }
         int minutes = (int) Duration.between(start, end).toMinutes();
-        return minutes > 0 ? minutes : minutes + MINUTES_PER_DAY;
+        // 분 절삭값의 부호로 익일을 판정하면 1분 미만 세션(09:00:00~09:00:30)이 0 으로 절삭돼
+        // 자정 넘김으로 오인된다. 절삭 전 시각을 직접 비교한다
+        return end.isAfter(start) ? minutes : minutes + MINUTES_PER_DAY;
     }
 }
