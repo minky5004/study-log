@@ -1,4 +1,4 @@
-package com.example.study_log;
+package com.minky.studylog;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
