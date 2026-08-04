@@ -45,4 +45,7 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// 테스트 프로파일을 바닥값으로 고정 — 애너테이션을 빠뜨린 테스트가 local 파일 DB 를 열지 않게.
+	// 시스템 프로퍼티가 application.properties 보다 우선하고, @ActiveProfiles 는 그보다 우선한다
+	systemProperty 'spring.profiles.active', 'test'
 }
