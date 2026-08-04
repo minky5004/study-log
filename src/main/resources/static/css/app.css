@@ -1,0 +1,64 @@
+:root {
+    --bg: #fbfaf7;
+    --fg: #1c1b19;
+    --muted: #6b6862;
+    --line: #e2ded6;
+    --accent: #2f5d50;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    line-height: 1.6;
+}
+
+.topbar {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.topbar .brand {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+}
+
+.topbar nav {
+    display: flex;
+    gap: 1rem;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.topbar nav a:hover {
+    color: var(--accent);
+}
+
+.container {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+}
+
+h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+}
+
+.lead {
+    margin: 0;
+    color: var(--muted);
+}
