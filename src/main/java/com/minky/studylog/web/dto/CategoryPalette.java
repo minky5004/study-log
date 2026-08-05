@@ -15,6 +15,11 @@ package com.minky.studylog.web.dto;
  */
 public final class CategoryPalette {
 
+    /**
+     * 실제 색은 {@code static/css/app.css} 의 {@code .cat-0}~{@code .cat-5} 가 갖는다.
+     * 이 값만 늘리면 남는 인덱스가 아무 규칙에도 걸리지 않아 색 없는 점으로 조용히 나가므로,
+     * 두 쪽이 어긋나는지는 {@code CategoryPaletteTest} 가 지킨다.
+     */
     public static final int SIZE = 6;
 
     private CategoryPalette() {

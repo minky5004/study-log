@@ -234,8 +234,10 @@ h1 {
     color: var(--fg);
 }
 
+/* 줄어들 여지를 주면 긴 분야 이름이 좁은 화면에서 점을 0폭까지 눌러 색이 사라진다 */
 .session-category::before {
     content: "";
+    flex: none;
     width: 0.45rem;
     height: 0.45rem;
     border-radius: 50%;
