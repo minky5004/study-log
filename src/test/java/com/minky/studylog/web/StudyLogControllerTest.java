@@ -54,12 +54,14 @@ class StudyLogControllerTest {
     }
 
     @Test
-    @DisplayName("폼은 오늘 날짜가 채워진 채로 열림")
+    @DisplayName("폼은 오늘 날짜가 채워진 채로 열림 — 호스트 시간대와 무관하게 한국 기준")
     void formPrefillsToday() throws Exception {
+        // LocalDate.now() 를 그대로 쓰면 UTC 러너에서 KST 와 하루 갈린다
         mockMvc.perform(get("/logs/new"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("logs/form"))
-                .andExpect(model().attribute("form", hasProperty("studyDate", is(LocalDate.now()))));
+                .andExpect(model().attribute("form",
+                        hasProperty("studyDate", is(LocalDate.now(StudyLogForm.ZONE)))));
     }
 
     @Test
