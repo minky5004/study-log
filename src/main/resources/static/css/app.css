@@ -62,3 +62,248 @@ h1 {
     margin: 0;
     color: var(--muted);
 }
+
+.container-narrow {
+    max-width: 42rem;
+}
+
+.page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* ── 버튼 ───────────────────────────────────────── */
+
+.button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    background: var(--accent);
+    color: var(--bg);
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.button:hover {
+    background: #24473d;
+    border-color: #24473d;
+}
+
+.button-quiet {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--muted);
+}
+
+.button-quiet:hover {
+    background: transparent;
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* ── 목록 ───────────────────────────────────────── */
+
+.empty {
+    margin: 4rem 0;
+    color: var(--muted);
+    text-align: center;
+}
+
+.log-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.log {
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--line);
+}
+
+.log-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.log-date {
+    flex: none;
+    width: 6.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.log-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.log-duration {
+    flex: none;
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.log-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-left: 6.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.log-time {
+    font-variant-numeric: tabular-nums;
+}
+
+.log-category {
+    padding: 0.05rem 0.45rem;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    color: var(--fg);
+}
+
+.log-summary {
+    margin: 0.6rem 0 0 6.5rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.pager a:hover {
+    color: var(--accent);
+}
+
+/* ── 폼 ─────────────────────────────────────────── */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.field-label,
+.field-sublabel {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.field-label {
+    color: var(--fg);
+    font-weight: 600;
+}
+
+.field-row {
+    display: flex;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.field-row .field {
+    flex: 1;
+}
+
+.field-row legend {
+    margin-bottom: 0.35rem;
+    padding: 0;
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.field-hint {
+    margin: -0.75rem 0 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+input,
+textarea {
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    font-size: 0.95rem;
+}
+
+textarea {
+    resize: vertical;
+    line-height: 1.7;
+}
+
+input:focus,
+textarea:focus,
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.field-error {
+    color: #a33a2b;
+    font-size: 0.82rem;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--line);
+}
+
+@media (max-width: 40rem) {
+    .field-row {
+        flex-wrap: wrap;
+    }
+
+    .log-date {
+        width: auto;
+    }
+
+    .log-meta,
+    .log-summary {
+        margin-left: 0;
+    }
+
+    .log-head {
+        flex-wrap: wrap;
+    }
+
+    .log-title {
+        flex-basis: 100%;
+        order: 3;
+    }
+}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>새 기록 · study-log</title>
+</head>
+<body>
+<main class="container container-narrow">
+    <div class="page-head">
+        <h1>새 기록</h1>
+        <a class="button button-quiet" th:href="@{/logs}">목록으로</a>
+    </div>
+
+    <form class="form" th:action="@{/logs}" th:object="${form}" method="post">
+        <label class="field">
+            <span class="field-label">제목</span>
+            <input type="text" th:field="*{title}" autofocus
+                   placeholder="무엇을 공부했는지 한 줄로">
+            <span class="field-error" th:if="${#fields.hasErrors('title')}"
+                  th:errors="*{title}">오류</span>
+        </label>
+
+        <fieldset class="field-row">
+            <legend class="field-label">언제</legend>
+            <label class="field">
+                <span class="field-sublabel">날짜</span>
+                <input type="date" th:field="*{studyDate}">
+                <span class="field-error" th:if="${#fields.hasErrors('studyDate')}"
+                      th:errors="*{studyDate}">오류</span>
+            </label>
+            <label class="field">
+                <span class="field-sublabel">시작</span>
+                <input type="time" th:field="*{startTime}">
+                <span class="field-error" th:if="${#fields.hasErrors('startTime')}"
+                      th:errors="*{startTime}">오류</span>
+            </label>
+            <label class="field">
+                <span class="field-sublabel">종료</span>
+                <input type="time" th:field="*{endTime}">
+                <span class="field-error" th:if="${#fields.hasErrors('endTime')}"
+                      th:errors="*{endTime}">오류</span>
+            </label>
+        </fieldset>
+        <p class="field-hint">종료가 시작보다 이르면 다음 날로 계산합니다.</p>
+
+        <fieldset class="field-row">
+            <legend class="field-label">무엇을</legend>
+            <label class="field">
+                <span class="field-sublabel">분야</span>
+                <input type="text" th:field="*{categoryName}" placeholder="Spring">
+                <span class="field-error" th:if="${#fields.hasErrors('categoryName')}"
+                      th:errors="*{categoryName}">오류</span>
+            </label>
+            <label class="field">
+                <span class="field-sublabel">태그</span>
+                <input type="text" th:field="*{tagsCsv}" placeholder="jpa, 트랜잭션">
+            </label>
+        </fieldset>
+
+        <label class="field">
+            <span class="field-label">요약</span>
+            <input type="text" th:field="*{summary}" placeholder="목록에 함께 보일 한 줄">
+            <span class="field-error" th:if="${#fields.hasErrors('summary')}"
+                  th:errors="*{summary}">오류</span>
+        </label>
+
+        <label class="field">
+            <span class="field-label">노트</span>
+            <textarea th:field="*{note}" rows="12" placeholder="마크다운으로 자유롭게"></textarea>
+        </label>
+
+        <div class="form-actions">
+            <button type="submit" class="button">기록 저장</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

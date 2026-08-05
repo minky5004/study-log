@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>기록 · study-log</title>
+</head>
+<body>
+<main class="container">
+    <div class="page-head">
+        <div>
+            <h1>기록</h1>
+            <p class="lead" th:if="${logs.totalElements > 0}">
+                <span th:text="${logs.totalElements}">0</span>개의 세션
+            </p>
+        </div>
+        <a class="button" th:href="@{/logs/new}">새 기록</a>
+    </div>
+
+    <p class="empty" th:if="${logs.isEmpty()}">
+        아직 기록이 없습니다. 첫 세션을 남기면 여기에 쌓입니다.
+    </p>
+
+    <ol class="log-list" th:unless="${logs.isEmpty()}">
+        <li class="log" th:each="log : ${logs.content}">
+            <div class="log-head">
+                <time class="log-date" th:datetime="${log.studyDate}"
+                      th:text="${#temporals.format(log.studyDate, 'M월 d일 (E)')}">8월 3일 (월)</time>
+                <h2 class="log-title" th:text="${log.title}">제목</h2>
+                <span class="log-duration" th:text="${log.durationText()}">2시간</span>
+            </div>
+
+            <div class="log-meta">
+                <span class="log-time"
+                      th:text="${#temporals.format(log.startTime, 'HH:mm')} + ' – '
+                              + ${#temporals.format(log.endTime, 'HH:mm')}">09:00 – 11:30</span>
+                <span class="log-category" th:text="${log.categoryName}">Spring</span>
+                <span class="log-tag" th:each="tag : ${log.tags()}" th:text="'#' + ${tag}">#jpa</span>
+            </div>
+
+            <p class="log-summary" th:if="${!#strings.isEmpty(log.summary)}"
+               th:text="${log.summary}">요약</p>
+        </li>
+    </ol>
+
+    <nav class="pager" th:if="${logs.totalPages > 1}">
+        <a th:if="${logs.hasPrevious()}" th:href="@{/logs(page=${logs.number - 1})}">이전</a>
+        <span th:text="${logs.number + 1} + ' / ' + ${logs.totalPages}">1 / 1</span>
+        <a th:if="${logs.hasNext()}" th:href="@{/logs(page=${logs.number + 1})}">다음</a>
+    </nav>
+</main>
+</body>
+</html>
