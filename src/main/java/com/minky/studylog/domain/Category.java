@@ -52,8 +52,13 @@ public class Category {
         return collapseWhitespace(rawName).toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * 공백 축약에 유니코드 인식 {@code (?U)} 를 붙이는 것은 비분리 공백(U+00A0)·전각 공백(U+3000)
+     * 때문 — 문서에서 붙여넣은 분야가 타이핑한 것과 다른 키로 갈라지면 통계가 둘로 쪼개지고,
+     * 이 프로젝트에는 합칠 분야 관리 화면이 없다. 축약 후에 자르는 순서라 앞뒤도 함께 처리된다.
+     */
     private static String collapseWhitespace(String raw) {
-        return raw == null ? "" : raw.trim().replaceAll("\\s+", " ");
+        return raw == null ? "" : raw.replaceAll("(?U)\\s+", " ").trim();
     }
 
     public Long getId() {

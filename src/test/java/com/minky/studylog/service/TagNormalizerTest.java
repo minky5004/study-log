@@ -8,6 +8,10 @@ import org.junit.jupiter.api.Test;
 
 class TagNormalizerTest {
 
+    // 눈에 보이지 않는 문자라 소스에 그대로 넣지 않는다
+    private static final String NBSP = Character.toString(0x00A0);
+    private static final String IDEOGRAPHIC_SPACE = Character.toString(0x3000);
+
     @Test
     @DisplayName("앞뒤 공백 제거 · 소문자 변환")
     void trimsAndLowercases() {
@@ -38,6 +42,21 @@ class TagNormalizerTest {
     void preservesInputOrder() {
         assertThat(TagNormalizer.normalizeAll("트랜잭션, jpa, 인덱스"))
                 .containsExactly("트랜잭션", "jpa", "인덱스");
+    }
+
+    @Test
+    @DisplayName("붙여넣기로 들어오는 비분리 공백도 일반 공백과 같은 태그")
+    void treatsNonBreakingSpaceAsSpace() {
+        assertThat(TagNormalizer.normalize("자료" + NBSP + "구조")).isEqualTo("자료 구조");
+        assertThat(TagNormalizer.normalize("자료" + IDEOGRAPHIC_SPACE + "구조")).isEqualTo("자료 구조");
+    }
+
+    @Test
+    @DisplayName("공백뿐인 항목은 버림 — 자동완성·필터에 보이지 않는 태그가 남지 않게")
+    void dropsWhitespaceOnlyItems() {
+        assertThat(TagNormalizer.normalizeAll("jpa," + NBSP)).containsExactly("jpa");
+        assertThat(TagNormalizer.normalizeAll("jpa," + IDEOGRAPHIC_SPACE)).containsExactly("jpa");
+        assertThat(TagNormalizer.normalizeAll(NBSP)).isEmpty();
     }
 
     @Test
