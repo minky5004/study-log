@@ -89,6 +89,23 @@ class StudyLogServiceTest {
     }
 
     @Test
+    @DisplayName("서로 다른 분야는 서로 다른 색 — 목록이 색으로 분야를 가른다")
+    void assignsDistinctColorsToDifferentCategories() {
+        studyLogService.create(form("스프링", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", null));
+        studyLogService.create(form("자료 구조", LocalDate.of(2026, 8, 4),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", null));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<StudyLogListItem> page = studyLogService.findAll(PageRequest.of(0, 20));
+
+        assertThat(page.getContent()).extracting(StudyLogListItem::categoryColorIndex)
+                .doesNotHaveDuplicates();
+    }
+
+    @Test
     @DisplayName("DB 왕복 후에도 태그 구성은 그대로 — 순서는 보장 대상 아님")
     void keepsTagsAcrossReload() {
         studyLogService.create(form("자료 구조 복습", LocalDate.of(2026, 8, 6),

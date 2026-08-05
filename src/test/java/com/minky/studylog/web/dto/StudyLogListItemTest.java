@@ -67,6 +67,6 @@ class StudyLogListItemTest {
     private StudyLogListItem item(int durationMinutes) {
         return new StudyLogListItem(1L, "제목", LocalDate.of(2026, 8, 3),
                 LocalTime.of(9, 0), LocalTime.of(10, 0), durationMinutes,
-                "Spring", List.of(), "요약");
+                "Spring", 1L, List.of(), "요약");
     }
 }

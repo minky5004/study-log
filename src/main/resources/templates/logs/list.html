@@ -20,25 +20,35 @@
         아직 기록이 없습니다. 첫 세션을 남기면 여기에 쌓입니다.
     </p>
 
-    <ol class="log-list" th:unless="${logs.isEmpty()}">
-        <li class="log" th:each="log : ${logs.content}">
-            <div class="log-head">
-                <time class="log-date" th:datetime="${log.studyDate}"
-                      th:text="${log.studyDateText()}">8월 3일 (월)</time>
-                <h2 class="log-title" th:text="${log.title}">제목</h2>
-                <span class="log-duration" th:text="${log.durationText()}">2시간</span>
+    <ol class="day-list">
+        <li class="day" th:each="day : ${days}">
+            <div class="day-head">
+                <time class="day-date" th:datetime="${day.date}"
+                      th:text="${day.dateText()}">8월 6일 (목)</time>
+                <span class="day-total" th:text="${day.totalText()}">2시간 50분</span>
             </div>
 
-            <div class="log-meta">
-                <span class="log-time"
-                      th:text="${#temporals.format(log.startTime, 'HH:mm')} + ' – '
-                              + ${#temporals.format(log.endTime, 'HH:mm')}">09:00 – 11:30</span>
-                <span class="log-category" th:text="${log.categoryName}">Spring</span>
-                <span class="log-tag" th:each="tag : ${log.tags()}" th:text="'#' + ${tag}">#jpa</span>
-            </div>
+            <ol class="session-list">
+                <li class="session" th:each="log : ${day.logs()}">
+                    <div class="session-head">
+                        <time class="session-time" th:datetime="${log.startTime}"
+                              th:text="${#temporals.format(log.startTime, 'HH:mm')}">14:00</time>
+                        <h2 class="session-title" th:text="${log.title}">제목</h2>
+                        <span class="session-duration" th:unless="${day.singleSession()}"
+                              th:text="${log.durationText()}">1시간 20분</span>
+                    </div>
 
-            <p class="log-summary" th:if="${!#strings.isEmpty(log.summary)}"
-               th:text="${log.summary}">요약</p>
+                    <div class="session-meta">
+                        <span class="session-category" th:classappend="'cat-' + ${log.categoryColorIndex()}"
+                              th:text="${log.categoryName}">CS</span>
+                        <span class="session-tag" th:each="tag : ${log.tags()}"
+                              th:text="'#' + ${tag}">#큐</span>
+                    </div>
+
+                    <p class="session-summary" th:if="${!#strings.isEmpty(log.summary)}"
+                       th:text="${log.summary}">요약</p>
+                </li>
+            </ol>
         </li>
     </ol>
 

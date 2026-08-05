@@ -3,6 +3,7 @@ package com.minky.studylog.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -118,7 +119,7 @@ class StudyLogControllerTest {
     void listRendersRows() throws Exception {
         StudyLogListItem item = new StudyLogListItem(1L, "트랜잭션 격리 수준",
                 LocalDate.of(2026, 8, 3), LocalTime.of(23, 0), LocalTime.of(1, 0), 120,
-                "Spring", List.of("jpa", "트랜잭션"), "격리 수준 4단계 정리");
+                "Spring", 1L, List.of("jpa", "트랜잭션"), "격리 수준 4단계 정리");
         Mockito.when(studyLogService.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(item), PageRequest.of(0, 20), 1));
 
@@ -126,7 +127,26 @@ class StudyLogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("트랜잭션 격리 수준")))
                 .andExpect(content().string(containsString("8월 3일 (월)")))
-                .andExpect(content().string(containsString("2시간")));
+                .andExpect(content().string(containsString("2시간")))
+                .andExpect(content().string(containsString("cat-" + item.categoryColorIndex())));
+    }
+
+    @Test
+    @DisplayName("같은 날 두 건은 상자 하나 · 머리에 합계")
+    void listGroupsSameDayIntoOneBox() throws Exception {
+        Mockito.when(studyLogService.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(
+                List.of(item("밤 세션", LocalTime.of(21, 0), 90), item("낮 세션", LocalTime.of(14, 0), 80)),
+                PageRequest.of(0, 20), 2));
+
+        mockMvc.perform(get("/logs"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("days", hasSize(1)))
+                .andExpect(content().string(containsString("2시간 50분")));
+    }
+
+    private StudyLogListItem item(String title, LocalTime start, int minutes) {
+        return new StudyLogListItem(1L, title, LocalDate.of(2026, 8, 3), start,
+                start.plusMinutes(minutes), minutes, "Spring", 1L, List.of("jpa"), "요약");
     }
 
     @Test

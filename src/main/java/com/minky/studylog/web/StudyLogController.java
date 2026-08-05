@@ -2,6 +2,7 @@ package com.minky.studylog.web;
 
 import com.minky.studylog.service.StudyLogService;
 import com.minky.studylog.service.TagNormalizer;
+import com.minky.studylog.web.dto.StudyLogDay;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import jakarta.validation.Valid;
@@ -74,6 +75,8 @@ public class StudyLogController {
         }
 
         model.addAttribute("logs", logs);
+        // 묶기가 페이징 뒤에 오는 순서라 상자 합계가 그 페이지에 보이는 세션의 합과 항상 같다
+        model.addAttribute("days", StudyLogDay.groupByDate(logs.getContent()));
         return "logs/list";
     }
 
