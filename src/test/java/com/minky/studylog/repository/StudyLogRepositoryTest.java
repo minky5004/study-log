@@ -1,6 +1,7 @@
 package com.minky.studylog.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.minky.studylog.domain.Category;
 import com.minky.studylog.domain.StudyLog;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -47,12 +49,21 @@ class StudyLogRepositoryTest {
     }
 
     @Test
-    @DisplayName("분야 이름은 대소문자 무시로 조회")
-    void findsCategoryIgnoringCase() {
+    @DisplayName("분야는 정규화 키로 조회 — 최초 등록 표기와 무관")
+    void findsCategoryByNormalizedKey() {
         categoryRepository.save(new Category("Spring"));
         entityManager.flush();
         entityManager.clear();
 
-        assertThat(categoryRepository.findByNameIgnoreCase("spring")).isPresent();
+        assertThat(categoryRepository.findByNameKey("spring")).isPresent();
+    }
+
+    @Test
+    @DisplayName("대소문자만 다른 분야는 DB 가 거부 — 분야 해석이 갈라지는 것의 최종 방어선")
+    void rejectsCaseOnlyDuplicateCategory() {
+        categoryRepository.saveAndFlush(new Category("Spring"));
+
+        assertThatThrownBy(() -> categoryRepository.saveAndFlush(new Category("spring")))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 }
