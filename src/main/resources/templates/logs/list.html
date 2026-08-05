@@ -9,7 +9,7 @@
     <div class="page-head">
         <div>
             <h1>기록</h1>
-            <p class="lead" th:if="${logs.totalElements > 0}">
+            <p class="lead" th:unless="${logs.isEmpty()}">
                 <span th:text="${logs.totalElements}">0</span>개의 세션
             </p>
         </div>
@@ -24,7 +24,7 @@
         <li class="log" th:each="log : ${logs.content}">
             <div class="log-head">
                 <time class="log-date" th:datetime="${log.studyDate}"
-                      th:text="${#temporals.format(log.studyDate, 'M월 d일 (E)')}">8월 3일 (월)</time>
+                      th:text="${log.studyDateText()}">8월 3일 (월)</time>
                 <h2 class="log-title" th:text="${log.title}">제목</h2>
                 <span class="log-duration" th:text="${log.durationText()}">2시간</span>
             </div>

@@ -5,9 +5,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import org.springframework.format.annotation.DateTimeFormat;
 
 public class StudyLogForm {
+
+    /** 단일 사용자용 도구라 사용자 시간대를 받지 않고 고정한다. */
+    public static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
 
     private Long id;
 
@@ -15,10 +19,13 @@ public class StudyLogForm {
     @Size(max = 200, message = "제목은 200자 이내")
     private String title;
 
-    /** 기본값이 오늘인 것이 "매일 쓰는 도구" 의 입력 마찰을 없애는 지점. */
+    /**
+     * 기본값이 오늘인 것이 "매일 쓰는 도구" 의 입력 마찰을 없애는 지점.
+     * 시간대를 못박는 이유는 배포 호스트가 UTC 일 때 자정 직후 기록에 어제가 채워지기 때문.
+     */
     @NotNull(message = "날짜는 필수")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private LocalDate studyDate = LocalDate.now();
+    private LocalDate studyDate = LocalDate.now(ZONE);
 
     @NotNull(message = "시작 시각은 필수")
     @DateTimeFormat(pattern = "HH:mm")
@@ -32,6 +39,7 @@ public class StudyLogForm {
     @Size(max = 50, message = "분야는 50자 이내")
     private String categoryName;
 
+    @Size(max = 500, message = "태그 입력이 너무 깁니다")
     private String tagsCsv;
 
     @Size(max = 500, message = "요약은 500자 이내")

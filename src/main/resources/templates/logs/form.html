@@ -54,6 +54,8 @@
             <label class="field">
                 <span class="field-sublabel">태그</span>
                 <input type="text" th:field="*{tagsCsv}" placeholder="jpa, 트랜잭션">
+                <span class="field-error" th:if="${#fields.hasErrors('tagsCsv')}"
+                      th:errors="*{tagsCsv}">오류</span>
             </label>
         </fieldset>
 

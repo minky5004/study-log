@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -49,6 +50,18 @@ class StudyLogListItemTest {
         assertThat(converted.tags()).containsExactly("트랜잭션", "jpa", "인덱스");
         assertThat(converted.categoryName()).isEqualTo("Spring");
         assertThat(converted.durationText()).isEqualTo("2시간");
+    }
+
+    @Test
+    @DisplayName("날짜 표기는 로케일과 무관하게 한국어 요일 — 브라우저 언어에 따라 섞이지 않게")
+    void formatsDateInKorean() {
+        Locale original = Locale.getDefault();
+        Locale.setDefault(Locale.US);
+        try {
+            assertThat(item(60).studyDateText()).isEqualTo("8월 3일 (월)");
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 
     private StudyLogListItem item(int durationMinutes) {
