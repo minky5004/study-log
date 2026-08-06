@@ -244,6 +244,10 @@ h1 {
     background: var(--cat, var(--muted));
 }
 
+.session-title a:hover {
+    color: var(--accent);
+}
+
 .session-summary {
     margin: 0.4rem 0 0 4.05rem;
     color: var(--muted);
@@ -263,6 +267,172 @@ h1 {
 
 .pager a:hover {
     color: var(--accent);
+}
+
+/* ── 상세 · 노트 ─────────────────────────────────── */
+
+.entry-head {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.entry-meta,
+.entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin: 0.5rem 0 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.entry-meta {
+    font-variant-numeric: tabular-nums;
+}
+
+.entry-category {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    color: var(--fg);
+}
+
+.entry-category::before {
+    content: "";
+    flex: none;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--cat, var(--muted));
+}
+
+/* 요약과 노트 본문이 같은 색이면 어디까지가 한 줄 요약인지 경계가 없다 */
+.entry-summary {
+    margin: 0 0 1.75rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--line);
+    color: var(--muted);
+}
+
+.entry-nav {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+}
+
+/*
+ * 노트 본문은 마크다운이 만든 태그를 그대로 받는다 — 여기 없는 태그는 새니타이즈가
+ * 통과시켰더라도 기본 스타일로 나가므로, 화이트리스트가 허용하는 것까지 덮는다.
+ */
+.note > :first-child {
+    margin-top: 0;
+}
+
+.note h1,
+.note h2,
+.note h3,
+.note h4,
+.note h5,
+.note h6 {
+    margin: 2rem 0 0.6rem;
+    letter-spacing: -0.01em;
+}
+
+.note h1 { font-size: 1.35rem; }
+.note h2 { font-size: 1.15rem; }
+.note h3 { font-size: 1.02rem; }
+
+/*
+ * 넷째 단부터는 크기 대신 색으로만 가른다. 본문이 1rem 이라 더 줄이면 제목이 본문보다
+ * 작아지고, 브라우저 기본값에 맡기면 h4 가 h3 과 같은 크기로 나와 단이 사라진다.
+ */
+.note h4,
+.note h5,
+.note h6 {
+    font-size: 1rem;
+    color: var(--muted);
+}
+
+.note p,
+.note ul,
+.note ol {
+    margin: 0.85rem 0;
+}
+
+.note ul,
+.note ol {
+    padding-left: 1.3rem;
+}
+
+.note a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* 인라인만 초록으로 둔다 — 블록 전체를 한 색으로 칠하면 여러 줄에서 눈이 쉬지 못한다 */
+.note code {
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    background: var(--panel);
+    color: var(--accent);
+    font-size: 0.9em;
+}
+
+.note pre {
+    margin: 1rem 0;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+}
+
+.note pre code {
+    padding: 0;
+    background: none;
+    color: var(--fg);
+}
+
+.note blockquote {
+    margin: 1rem 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--line);
+    color: var(--muted);
+}
+
+/* 넓은 표가 페이지를 가로로 늘리지 않게 표 안에서만 스크롤시킨다 */
+.note table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    margin: 1rem 0;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.note th,
+.note td {
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--line);
+    text-align: left;
+}
+
+.note th {
+    background: var(--panel);
+}
+
+.note hr {
+    margin: 1.75rem 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+}
+
+.note img {
+    max-width: 100%;
 }
 
 /* ── 폼 ─────────────────────────────────────────── */

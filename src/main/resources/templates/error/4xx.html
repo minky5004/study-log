@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>없는 페이지 · study-log</title>
+</head>
+<body>
+<!--
+  Boot 는 이 화면을 4xx 전체에 쓴다. 없는 기록뿐 아니라 오타 난 주소 · 아직 없는 화면
+  (상단 통계 링크)도 여기로 오므로 문구를 기록 전용으로 적지 않는다.
+-->
+<main class="container container-narrow">
+    <h1>없는 페이지</h1>
+    <p class="lead">주소가 잘못됐거나 지워진 기록입니다.</p>
+
+    <nav class="entry-nav">
+        <a class="button button-quiet" th:href="@{/logs}">기록 목록으로</a>
+    </nav>
+</main>
+</body>
+</html>

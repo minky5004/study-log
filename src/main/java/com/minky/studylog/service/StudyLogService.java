@@ -2,6 +2,7 @@ package com.minky.studylog.service;
 
 import com.minky.studylog.domain.StudyLog;
 import com.minky.studylog.repository.StudyLogRepository;
+import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import org.springframework.data.domain.Page;
@@ -14,10 +15,13 @@ public class StudyLogService {
 
     private final StudyLogRepository studyLogRepository;
     private final CategoryService categoryService;
+    private final MarkdownRenderer markdownRenderer;
 
-    public StudyLogService(StudyLogRepository studyLogRepository, CategoryService categoryService) {
+    public StudyLogService(StudyLogRepository studyLogRepository, CategoryService categoryService,
+                           MarkdownRenderer markdownRenderer) {
         this.studyLogRepository = studyLogRepository;
         this.categoryService = categoryService;
+        this.markdownRenderer = markdownRenderer;
     }
 
     @Transactional
@@ -41,5 +45,12 @@ public class StudyLogService {
     @Transactional(readOnly = true)
     public Page<StudyLogListItem> findAll(Pageable pageable) {
         return studyLogRepository.findAll(pageable).map(StudyLogListItem::from);
+    }
+
+    @Transactional(readOnly = true)
+    public StudyLogDetail findById(Long id) {
+        StudyLog log = studyLogRepository.findWithCategoryById(id)
+                .orElseThrow(() -> new StudyLogNotFoundException(id));
+        return StudyLogDetail.from(log, markdownRenderer.toSafeHtml(log.getNote()));
     }
 }
