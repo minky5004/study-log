@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title th:text="${log.title()} + ' · study-log'">기록 · study-log</title>
+</head>
+<body>
+<main class="container container-narrow">
+    <article class="entry">
+        <header class="entry-head">
+            <h1 th:text="${log.title()}">자료 구조 복습</h1>
+            <p class="entry-meta">
+                <span class="entry-category" th:classappend="'cat-' + ${log.categoryColorIndex()}"
+                      th:text="${log.categoryName()}">CS</span>
+                <time th:datetime="${log.studyDate()}" th:text="${log.studyDateText()}">8월 6일 (목)</time>
+                <span th:text="${#temporals.format(log.startTime(), 'HH:mm')} + '–'
+                        + ${#temporals.format(log.endTime(), 'HH:mm')}">14:00–15:20</span>
+                <span th:text="${log.durationText()}">1시간 20분</span>
+            </p>
+            <p class="entry-tags" th:unless="${log.tags().isEmpty()}">
+                <span class="session-tag" th:each="tag : ${log.tags()}"
+                      th:text="'#' + ${tag}">#큐</span>
+            </p>
+        </header>
+
+        <p class="entry-summary" th:if="${!#strings.isEmpty(log.summary())}"
+           th:text="${log.summary()}">큐와 스택 정리</p>
+
+        <!-- 새니타이즈를 마친 HTML 이라 utext. 원본 마크다운은 여기까지 오지 않는다 -->
+        <div class="note" th:if="${!#strings.isEmpty(log.noteHtml())}"
+             th:utext="${log.noteHtml()}"></div>
+        <p class="lead" th:if="${#strings.isEmpty(log.noteHtml())}">노트 없이 시간만 남긴 세션입니다.</p>
+    </article>
+
+    <nav class="entry-nav">
+        <a class="button button-quiet" th:href="@{/logs}">목록으로</a>
+    </nav>
+</main>
+</body>
+</html>

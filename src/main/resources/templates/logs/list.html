@@ -33,7 +33,9 @@
                     <div class="session-head">
                         <time class="session-time" th:datetime="${log.startTime}"
                               th:text="${#temporals.format(log.startTime, 'HH:mm')}">14:00</time>
-                        <h2 class="session-title" th:text="${log.title}">제목</h2>
+                        <h2 class="session-title">
+                            <a th:href="@{/logs/{id}(id=${log.id})}" th:text="${log.title}">제목</a>
+                        </h2>
                         <span class="session-duration" th:unless="${day.singleSession()}"
                               th:text="${log.durationText()}">1시간 20분</span>
                     </div>

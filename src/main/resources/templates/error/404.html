@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>없는 페이지 · study-log</title>
+</head>
+<body>
+<main class="container container-narrow">
+    <h1>찾을 수 없는 기록</h1>
+    <p class="lead">지운 기록이거나 주소가 잘못됐습니다.</p>
+
+    <nav class="entry-nav">
+        <a class="button button-quiet" th:href="@{/logs}">목록으로</a>
+    </nav>
+</main>
+</body>
+</html>

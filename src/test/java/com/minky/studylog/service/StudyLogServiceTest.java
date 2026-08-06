@@ -5,12 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.minky.studylog.domain.StudyLog;
 import com.minky.studylog.repository.StudyLogRepository;
+import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.NoSuchElementException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,6 +121,33 @@ class StudyLogServiceTest {
         // 순서까지 단언하지 않는 것은 @ElementCollection Set 이 해시 순서로 실려 오기 때문 —
         // 입력 순서 보존은 컬렉션 타입·스키마를 바꿔야 해서 도메인 사이클에서 따로 다룬다
         assertThat(page.getContent().get(0).tags()).containsExactlyInAnyOrder("자료 구조", "큐");
+    }
+
+    @Test
+    @DisplayName("상세는 지연 로딩 필드가 채워진 DTO · 노트는 새니타이즈를 끝낸 HTML")
+    void findsDetailWithRenderedNote() {
+        StudyLogForm form = form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(14, 0), LocalTime.of(15, 20), "CS", "자료 구조, 큐");
+        form.setNote("# 큐\n\n<script>alert(1)</script>");
+        Long id = studyLogService.create(form);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        StudyLogDetail detail = studyLogService.findById(id);
+
+        assertThat(detail.title()).isEqualTo("자료 구조 복습");
+        assertThat(detail.categoryName()).isEqualTo("CS");
+        assertThat(detail.tags()).containsExactlyInAnyOrder("자료 구조", "큐");
+        assertThat(detail.durationText()).isEqualTo("1시간 20분");
+        assertThat(detail.noteHtml()).contains("<h1>큐</h1>").doesNotContain("script");
+    }
+
+    @Test
+    @DisplayName("없는 id 는 NoSuchElementException — 빈 화면 대신 컨트롤러가 404 로 바꿀 수 있게")
+    void throwsForMissingId() {
+        assertThatThrownBy(() -> studyLogService.findById(9_999L))
+                .isInstanceOf(NoSuchElementException.class);
     }
 
     private StudyLogForm form(String title, LocalDate studyDate, LocalTime start, LocalTime end,

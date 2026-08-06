@@ -17,11 +17,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.minky.studylog.config.SecurityConfig;
 import com.minky.studylog.service.StudyLogService;
+import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -91,18 +93,61 @@ class StudyLogControllerTest {
     }
 
     @Test
-    @DisplayName("정상 입력은 저장 후 목록으로 리다이렉트")
-    void redirectsToListAfterCreate() throws Exception {
-        Mockito.when(studyLogService.create(any())).thenReturn(1L);
+    @DisplayName("정상 입력은 저장 후 그 기록의 상세로 리다이렉트 — 방금 쓴 노트를 바로 확인")
+    void redirectsToDetailAfterCreate() throws Exception {
+        Mockito.when(studyLogService.create(any())).thenReturn(7L);
 
         mockMvc.perform(post("/logs").param("title", "트랜잭션 격리 수준")
                         .param("studyDate", "2026-08-03")
                         .param("startTime", "23:00").param("endTime", "01:00")
                         .param("categoryName", "Spring").param("tagsCsv", "jpa").with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/logs"));
+                .andExpect(redirectedUrl("/logs/7"));
 
         Mockito.verify(studyLogService).create(any());
+    }
+
+    @Test
+    @DisplayName("상세는 렌더링된 노트를 그대로 출력 — 새니타이즈를 거친 HTML 이라 이스케이프하지 않는다")
+    void detailRendersNoteHtml() throws Exception {
+        Mockito.when(studyLogService.findById(1L)).thenReturn(detail("<h1>큐</h1>"));
+
+        mockMvc.perform(get("/logs/1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("logs/detail"))
+                .andExpect(content().string(containsString("<h1>큐</h1>")))
+                .andExpect(content().string(containsString("자료 구조 복습")))
+                .andExpect(content().string(containsString("#큐")))
+                .andExpect(content().string(containsString("1시간 20분")));
+    }
+
+    @Test
+    @DisplayName("없는 기록은 404 — 주소창 조작에 500 스택트레이스를 내지 않게")
+    void detailReturnsNotFound() throws Exception {
+        Mockito.when(studyLogService.findById(999L))
+                .thenThrow(new NoSuchElementException("기록 없음: 999"));
+
+        mockMvc.perform(get("/logs/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+    }
+
+    @Test
+    @DisplayName("목록의 세션 제목은 상세로 가는 링크 — 없으면 상세에 닿을 경로가 없다")
+    void listLinksToDetail() throws Exception {
+        StudyLogListItem item = item("트랜잭션 격리 수준", LocalTime.of(23, 0), 120);
+        Mockito.when(studyLogService.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(item), PageRequest.of(0, 20), 1));
+
+        mockMvc.perform(get("/logs"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/logs/1\"")));
+    }
+
+    private StudyLogDetail detail(String noteHtml) {
+        return new StudyLogDetail(1L, "자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(14, 0), LocalTime.of(15, 20), 80, "CS", 2L,
+                List.of("자료 구조", "큐"), "큐와 스택 정리", noteHtml);
     }
 
     @Test

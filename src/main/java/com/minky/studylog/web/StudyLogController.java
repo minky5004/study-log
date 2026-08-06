@@ -7,20 +7,25 @@ import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import jakarta.validation.Valid;
 import java.beans.PropertyEditorSupport;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
 @RequestMapping("/logs")
@@ -97,8 +102,23 @@ public class StudyLogController {
         if (binding.hasErrors()) {
             return "logs/form";
         }
-        studyLogService.create(form);
-        return "redirect:/logs";
+        return "redirect:/logs/" + studyLogService.create(form);
+    }
+
+    @GetMapping("/{id}")
+    public String detail(@PathVariable Long id, Model model) {
+        model.addAttribute("log", studyLogService.findById(id));
+        return "logs/detail";
+    }
+
+    /**
+     * 없는 기록은 주소창 조작뿐 아니라 삭제된 기록의 링크로도 늘 들어온다.
+     * 기본 처리에 맡기면 500 스택트레이스가 나가 없는 것과 고장 난 것이 구별되지 않는다.
+     */
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public String notFound() {
+        return "error/404";
     }
 
     /** 태그 컬럼이 50자라, 넘는 값은 저장 시점에 터진다. 정규화한 결과로 미리 잰다. */
