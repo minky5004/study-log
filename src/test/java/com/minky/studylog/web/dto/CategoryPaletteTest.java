@@ -15,10 +15,15 @@ class CategoryPaletteTest {
     @Test
     @DisplayName("연속된 식별자 여섯은 서로 다른 색 — 이름 해시로 흩뿌리면 넷째에서 이미 겹친다")
     void assignsDistinctColorsForConsecutiveIds() {
-        List<Integer> colors = LongStream.rangeClosed(1, CategoryPalette.SIZE)
-                .mapToObj(CategoryPalette::indexOf).toList();
+        assertThat(consecutiveColorsFrom(1L)).doesNotHaveDuplicates().hasSize(CategoryPalette.SIZE);
+        // 재기동으로 IDENTITY 블록 잔여 번호가 버려진 뒤의 실측 채번. 1 에서 시작하는 구간만
+        // 덮으면 작은 식별자를 특별 취급하는 구현도 이 테스트를 통과한다
+        assertThat(consecutiveColorsFrom(33L)).doesNotHaveDuplicates().hasSize(CategoryPalette.SIZE);
+    }
 
-        assertThat(colors).doesNotHaveDuplicates().hasSize(CategoryPalette.SIZE);
+    private static List<Integer> consecutiveColorsFrom(long firstId) {
+        return LongStream.range(firstId, firstId + CategoryPalette.SIZE)
+                .mapToObj(CategoryPalette::indexOf).toList();
     }
 
     @Test
