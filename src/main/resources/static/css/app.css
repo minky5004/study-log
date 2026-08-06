@@ -332,14 +332,28 @@ h1 {
 
 .note h1,
 .note h2,
-.note h3 {
+.note h3,
+.note h4,
+.note h5,
+.note h6 {
     margin: 2rem 0 0.6rem;
     letter-spacing: -0.01em;
 }
 
-.note h1 { font-size: 1.3rem; }
+.note h1 { font-size: 1.35rem; }
 .note h2 { font-size: 1.15rem; }
-.note h3 { font-size: 1rem; }
+.note h3 { font-size: 1.02rem; }
+
+/*
+ * 넷째 단부터는 크기 대신 색으로만 가른다. 본문이 1rem 이라 더 줄이면 제목이 본문보다
+ * 작아지고, 브라우저 기본값에 맡기면 h4 가 h3 과 같은 크기로 나와 단이 사라진다.
+ */
+.note h4,
+.note h5,
+.note h6 {
+    font-size: 1rem;
+    color: var(--muted);
+}
 
 .note p,
 .note ul,

@@ -12,7 +12,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.NoSuchElementException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,10 +143,10 @@ class StudyLogServiceTest {
     }
 
     @Test
-    @DisplayName("없는 id 는 NoSuchElementException — 빈 화면 대신 컨트롤러가 404 로 바꿀 수 있게")
+    @DisplayName("없는 id 는 전용 예외 — 다른 조회 실패가 404 로 둔갑하지 않게 타입을 좁힌다")
     void throwsForMissingId() {
         assertThatThrownBy(() -> studyLogService.findById(9_999L))
-                .isInstanceOf(NoSuchElementException.class);
+                .isInstanceOf(StudyLogNotFoundException.class);
     }
 
     private StudyLogForm form(String title, LocalDate studyDate, LocalTime start, LocalTime end,

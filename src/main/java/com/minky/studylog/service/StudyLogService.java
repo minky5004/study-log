@@ -5,7 +5,6 @@ import com.minky.studylog.repository.StudyLogRepository;
 import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
-import java.util.NoSuchElementException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -51,7 +50,7 @@ public class StudyLogService {
     @Transactional(readOnly = true)
     public StudyLogDetail findById(Long id) {
         StudyLog log = studyLogRepository.findWithCategoryById(id)
-                .orElseThrow(() -> new NoSuchElementException("기록 없음: " + id));
+                .orElseThrow(() -> new StudyLogNotFoundException(id));
         return StudyLogDetail.from(log, markdownRenderer.toSafeHtml(log.getNote()));
     }
 }

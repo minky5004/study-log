@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.minky.studylog.config.SecurityConfig;
+import com.minky.studylog.service.StudyLogNotFoundException;
 import com.minky.studylog.service.StudyLogService;
 import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
@@ -23,7 +24,6 @@ import com.minky.studylog.web.dto.StudyLogListItem;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,11 +125,11 @@ class StudyLogControllerTest {
     @DisplayName("없는 기록은 404 — 주소창 조작에 500 스택트레이스를 내지 않게")
     void detailReturnsNotFound() throws Exception {
         Mockito.when(studyLogService.findById(999L))
-                .thenThrow(new NoSuchElementException("기록 없음: 999"));
+                .thenThrow(new StudyLogNotFoundException(999L));
 
         mockMvc.perform(get("/logs/999"))
                 .andExpect(status().isNotFound())
-                .andExpect(view().name("error/404"));
+                .andExpect(view().name("error/4xx"));
     }
 
     @Test

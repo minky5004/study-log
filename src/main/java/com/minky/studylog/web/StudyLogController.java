@@ -1,5 +1,6 @@
 package com.minky.studylog.web;
 
+import com.minky.studylog.service.StudyLogNotFoundException;
 import com.minky.studylog.service.StudyLogService;
 import com.minky.studylog.service.TagNormalizer;
 import com.minky.studylog.web.dto.StudyLogDay;
@@ -7,7 +8,6 @@ import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import jakarta.validation.Valid;
 import java.beans.PropertyEditorSupport;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -115,10 +115,10 @@ public class StudyLogController {
      * 없는 기록은 주소창 조작뿐 아니라 삭제된 기록의 링크로도 늘 들어온다.
      * 기본 처리에 맡기면 500 스택트레이스가 나가 없는 것과 고장 난 것이 구별되지 않는다.
      */
-    @ExceptionHandler(NoSuchElementException.class)
+    @ExceptionHandler(StudyLogNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String notFound() {
-        return "error/404";
+        return "error/4xx";
     }
 
     /** 태그 컬럼이 50자라, 넘는 값은 저장 시점에 터진다. 정규화한 결과로 미리 잰다. */

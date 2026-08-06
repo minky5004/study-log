@@ -55,6 +55,12 @@ class MarkdownRendererTest {
     }
 
     @Test
+    @DisplayName("기록 사이 상대 링크 유지 — 절대 주소만 남기면 평문으로 조용히 내려앉는다")
+    void keepsSiteRelativeLink() {
+        assertThat(renderer.toSafeHtml("[앞 세션](/logs/12)")).contains("href=\"/logs/12\"");
+    }
+
+    @Test
     @DisplayName("null · 빈 노트는 빈 문자열")
     void handlesEmpty() {
         assertThat(renderer.toSafeHtml(null)).isEmpty();

@@ -18,6 +18,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class MarkdownRenderer {
 
+    /**
+     * 상대 링크 검사용 기준 주소. jsoup 은 기준이 없으면 상대 URL 을 절대 URL 로 만들지 못해
+     * 프로토콜 검사에서 통째로 떨어뜨린다 — {@code /logs/12} 같은 기록 사이 링크가 아무 표시
+     * 없이 평문이 된다. 검사만 이 주소로 하고 출력은 상대 경로 그대로 두므로(아래
+     * {@code preserveRelativeLinks}) 배포 호스트가 링크에 박히지 않는다.
+     * {@code .invalid} 는 실제 호스트가 될 수 없도록 예약된 최상위 도메인.
+     */
+    private static final String RELATIVE_LINK_BASE = "https://study-log.invalid/";
+
     private final Parser parser;
     private final HtmlRenderer htmlRenderer;
     private final Safelist safelist;
@@ -33,13 +42,14 @@ public class MarkdownRenderer {
                 .addTags("hr")
                 .addAttributes("code", "class")
                 .addAttributes("pre", "class")
-                .addAttributes("table", "class");
+                .addAttributes("table", "class")
+                .preserveRelativeLinks(true);
     }
 
     public String toSafeHtml(String markdown) {
         if (markdown == null || markdown.isBlank()) {
             return "";
         }
-        return Jsoup.clean(htmlRenderer.render(parser.parse(markdown)), safelist);
+        return Jsoup.clean(htmlRenderer.render(parser.parse(markdown)), RELATIVE_LINK_BASE, safelist);
     }
 }
