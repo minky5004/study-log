@@ -70,7 +70,9 @@ public class StudyLogService {
         form.setStartTime(log.getStartTime());
         form.setEndTime(log.getEndTime());
         form.setCategoryName(log.getCategory().getName());
-        form.setTagsCsv(String.join(", ", log.getTags()));
+        // 쉼표 뒤 공백을 넣지 않는 것은 프리필이 입력보다 길어지지 않게 하기 위해서 —
+        // 태그 상한을 채운 기록이 폼 입력 길이 상한에 걸려 수정 자체가 막힌다
+        form.setTagsCsv(String.join(",", log.getTags()));
         form.setSummary(log.getSummary());
         form.setNote(log.getNote());
         return form;

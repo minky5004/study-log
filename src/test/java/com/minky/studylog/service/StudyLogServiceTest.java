@@ -10,9 +10,12 @@ import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.validation.Validator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +33,7 @@ class StudyLogServiceTest {
 
     @Autowired StudyLogService studyLogService;
     @Autowired StudyLogRepository studyLogRepository;
+    @Autowired Validator validator;
     @PersistenceContext EntityManager entityManager;
 
     @Test
@@ -255,6 +259,26 @@ class StudyLogServiceTest {
         assertThat(prefilled.getNote()).isEqualTo("# 큐\n\n- 선입선출");
         assertThat(prefilled.getTagsCsv().split(",\\s*"))
                 .containsExactlyInAnyOrder("자료 구조", "큐");
+    }
+
+    /**
+     * 프리필이 입력보다 길어지면 손대지 않은 태그만으로 폼이 반려돼, 저장에 성공한 기록을
+     * 제목 한 줄도 못 고치게 된다.
+     */
+    @Test
+    @DisplayName("생성이 받아준 태그 입력은 수정 폼으로 되돌아와도 다시 제출 가능")
+    void toFormKeepsTagsCsvSubmittable() {
+        // 20개 · 각 24자 — 쉼표까지 499자로 태그 개수·길이·입력 길이 상한에 모두 걸리지 않는 최대치
+        String tagsCsv = IntStream.rangeClosed(1, 20)
+                .mapToObj(i -> "%02d".formatted(i) + "a".repeat(22))
+                .collect(Collectors.joining(","));
+        Long id = studyLogService.create(form("태그 가득한 기록", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", tagsCsv));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(validator.validate(studyLogService.toForm(id))).isEmpty();
     }
 
     @Test
