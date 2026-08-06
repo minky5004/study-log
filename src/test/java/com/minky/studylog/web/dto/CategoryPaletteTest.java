@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 class CategoryPaletteTest {
 
     @Test
-    @DisplayName("먼저 만든 여섯 분야는 서로 다른 색 — 이름 해시로 흩뿌리면 넷째에서 이미 겹친다")
-    void assignsDistinctColorsToFirstSix() {
+    @DisplayName("연속된 식별자 여섯은 서로 다른 색 — 이름 해시로 흩뿌리면 넷째에서 이미 겹친다")
+    void assignsDistinctColorsForConsecutiveIds() {
         List<Integer> colors = LongStream.rangeClosed(1, CategoryPalette.SIZE)
                 .mapToObj(CategoryPalette::indexOf).toList();
 
