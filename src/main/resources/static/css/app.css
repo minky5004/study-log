@@ -129,6 +129,19 @@ h1 {
     color: var(--fg);
 }
 
+/* 되돌릴 수 없는 동작만. 평소에는 테두리로만 서 있다가 누르기 직전에 채워진다 */
+.button-danger {
+    background: transparent;
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.button-danger:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--bg);
+}
+
 /* ── 목록 — 하루가 상자 하나 ─────────────────────── */
 
 .empty {
@@ -317,9 +330,50 @@ h1 {
 }
 
 .entry-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     margin-top: 2.5rem;
     padding-top: 1.25rem;
     border-top: 1px solid var(--line);
+}
+
+/* ── 삭제 확인 ───────────────────────────────────── */
+
+/* 지워질 것에 위험색 기둥을 세워, 확인 화면이 무엇을 가리키는지 한눈에 잡히게 한다 */
+.doomed {
+    margin-top: 1.5rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--danger);
+    border-radius: 4px;
+    background: var(--panel);
+}
+
+.entry-title {
+    margin: 0;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+}
+
+/* 노트가 길어도 확인 화면은 한 화면. 알아볼 만큼만 보이고 나머지는 흐려진다 */
+.note-preview {
+    position: relative;
+    max-height: 12rem;
+    overflow: hidden;
+}
+
+.note-preview::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 4rem;
+    background: linear-gradient(to bottom, transparent, var(--panel));
+}
+
+/* 취소와 삭제를 양 끝으로 갈라 놓는다 — 되돌릴 수 없는 쪽이 손가락 밑에 있지 않게 */
+.confirm-actions {
+    justify-content: space-between;
 }
 
 /*

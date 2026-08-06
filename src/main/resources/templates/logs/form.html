@@ -2,16 +2,20 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout :: page(~{::title}, ~{::main})}">
 <head>
-    <title>새 기록 · study-log</title>
+    <title th:text="${form.id} == null ? '새 기록 · study-log' : '기록 수정 · study-log'">새 기록 · study-log</title>
 </head>
 <body>
-<main class="container container-narrow">
+<!-- 생성·수정 겸용. 갈리는 것은 제출 주소와 문구뿐이라 폼을 둘로 두지 않는다 -->
+<main class="container container-narrow" th:with="editing=${form.id != null}">
     <div class="page-head">
-        <h1>새 기록</h1>
-        <a class="button button-quiet" th:href="@{/logs}">목록으로</a>
+        <h1 th:text="${editing} ? '기록 수정' : '새 기록'">새 기록</h1>
+        <a class="button button-quiet"
+           th:href="${editing} ? @{/logs/{id}(id=${form.id})} : @{/logs}"
+           th:text="${editing} ? '취소' : '목록으로'">목록으로</a>
     </div>
 
-    <form class="form" th:action="@{/logs}" th:object="${form}" method="post">
+    <form class="form" method="post" th:object="${form}"
+          th:action="${editing} ? @{/logs/{id}(id=${form.id})} : @{/logs}">
         <label class="field">
             <span class="field-label">제목</span>
             <input type="text" th:field="*{title}" autofocus
@@ -72,7 +76,8 @@
         </label>
 
         <div class="form-actions">
-            <button type="submit" class="button">기록 저장</button>
+            <button type="submit" class="button"
+                    th:text="${editing} ? '수정 저장' : '기록 저장'">기록 저장</button>
         </div>
     </form>
 </main>

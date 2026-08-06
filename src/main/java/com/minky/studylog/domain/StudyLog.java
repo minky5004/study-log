@@ -77,23 +77,37 @@ public class StudyLog {
 
     public StudyLog(String title, LocalDate studyDate, LocalTime startTime, LocalTime endTime,
                     Category category, Set<String> tags, String summary, String note) {
-        apply(title, studyDate, startTime, endTime, category, tags, summary, note);
+        applyScalars(title, studyDate, startTime, endTime, category, summary, note);
+        this.tags = tags == null ? new LinkedHashSet<>() : new LinkedHashSet<>(tags);
     }
 
+    /**
+     * 태그는 컬렉션 인스턴스를 갈아 끼우지 않고 제자리로 갱신한다 — 새 집합을 대입하면
+     * 로드된 {@code PersistentSet} 이 버려져 태그가 그대로여도 {@code study_log_tag} 전 행이
+     * 지워졌다 다시 들어간다.
+     * <p>
+     * 수정 시각도 직접 찍는다. {@code @PreUpdate} 는 엔티티 행에 {@code UPDATE} 가 잡힐 때만
+     * 불리는데, 태그만 고치면 스칼라 필드는 같은 값이 재대입될 뿐이라 행이 더럽지 않다 —
+     * 컬렉션 행은 다시 쓰이는데 수정 시각만 옛 값으로 남는다.
+     */
     public void update(String title, LocalDate studyDate, LocalTime startTime, LocalTime endTime,
                        Category category, Set<String> tags, String summary, String note) {
-        apply(title, studyDate, startTime, endTime, category, tags, summary, note);
+        applyScalars(title, studyDate, startTime, endTime, category, summary, note);
+        this.tags.clear();
+        if (tags != null) {
+            this.tags.addAll(tags);
+        }
+        this.updatedAt = LocalDateTime.now();
     }
 
-    private void apply(String title, LocalDate studyDate, LocalTime startTime, LocalTime endTime,
-                       Category category, Set<String> tags, String summary, String note) {
+    private void applyScalars(String title, LocalDate studyDate, LocalTime startTime,
+                              LocalTime endTime, Category category, String summary, String note) {
         this.title = title;
         this.studyDate = studyDate;
         this.startTime = startTime;
         this.endTime = endTime;
         this.durationMinutes = StudySessionTime.durationMinutes(startTime, endTime);
         this.category = category;
-        this.tags = tags == null ? new LinkedHashSet<>() : new LinkedHashSet<>(tags);
         this.summary = summary;
         this.note = note;
     }
