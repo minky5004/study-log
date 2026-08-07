@@ -16,8 +16,39 @@
         <a class="button" th:href="@{/logs/new}">새 기록</a>
     </div>
 
-    <p class="empty" th:if="${logs.isEmpty()}">
+    <!-- GET 으로 보내야 검색 결과 주소가 공유·새로고침에서 살아남는다 -->
+    <form class="search" method="get" th:object="${cond}" th:action="@{/logs}">
+        <label class="field search-keyword">
+            <span class="field-sublabel">키워드</span>
+            <input type="search" th:field="*{keyword}" placeholder="제목 · 요약 · 노트 본문">
+        </label>
+        <label class="field">
+            <span class="field-sublabel">분야</span>
+            <input type="text" th:field="*{categoryName}" placeholder="전체">
+        </label>
+        <label class="field">
+            <span class="field-sublabel">태그</span>
+            <input type="text" th:field="*{tag}" placeholder="전체">
+        </label>
+        <label class="field">
+            <span class="field-sublabel">시작일</span>
+            <input type="date" th:field="*{from}">
+        </label>
+        <label class="field">
+            <span class="field-sublabel">종료일</span>
+            <input type="date" th:field="*{to}">
+        </label>
+        <div class="search-actions">
+            <button class="button" type="submit">검색</button>
+            <a class="button button-quiet" th:unless="${cond.empty}" th:href="@{/logs}">초기화</a>
+        </div>
+    </form>
+
+    <p class="empty" th:if="${logs.isEmpty() and cond.empty}">
         아직 기록이 없습니다. 첫 세션을 남기면 여기에 쌓입니다.
+    </p>
+    <p class="empty" th:if="${logs.isEmpty() and !cond.empty}">
+        조건에 맞는 기록이 없습니다. 조건을 넓히거나 초기화해 보세요.
     </p>
 
     <ol class="day-list">
@@ -55,9 +86,10 @@
     </ol>
 
     <nav class="pager" th:if="${logs.totalPages > 1}">
-        <a th:if="${logs.hasPrevious()}" th:href="@{/logs(page=${logs.number - 1})}">이전</a>
+        <!-- 주소는 컨트롤러가 만든다 — 검색 조건을 싣는 규칙이 리다이렉트와 한 곳이어야 한다 -->
+        <a th:if="${prevPageUrl}" th:href="${prevPageUrl}">이전</a>
         <span th:text="${logs.number + 1} + ' / ' + ${logs.totalPages}">1 / 1</span>
-        <a th:if="${logs.hasNext()}" th:href="@{/logs(page=${logs.number + 1})}">다음</a>
+        <a th:if="${nextPageUrl}" th:href="${nextPageUrl}">다음</a>
     </nav>
 </main>
 </body>

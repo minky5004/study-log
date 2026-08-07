@@ -21,6 +21,7 @@ import com.minky.studylog.service.StudyLogService;
 import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
+import com.minky.studylog.web.dto.StudyLogSearchCond;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -53,7 +54,7 @@ class StudyLogControllerTest {
 
     @BeforeEach
     void setUp() {
-        Mockito.when(studyLogService.findAll(any(Pageable.class))).thenReturn(Page.empty());
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class))).thenReturn(Page.empty());
     }
 
     @Test
@@ -136,7 +137,7 @@ class StudyLogControllerTest {
     @DisplayName("목록의 세션 제목은 상세로 가는 링크 — 없으면 상세에 닿을 경로가 없다")
     void listLinksToDetail() throws Exception {
         StudyLogListItem item = item("트랜잭션 격리 수준", LocalTime.of(23, 0), 120);
-        Mockito.when(studyLogService.findAll(any(Pageable.class)))
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(item), PageRequest.of(0, 20), 1));
 
         mockMvc.perform(get("/logs"))
@@ -165,7 +166,7 @@ class StudyLogControllerTest {
         StudyLogListItem item = new StudyLogListItem(1L, "트랜잭션 격리 수준",
                 LocalDate.of(2026, 8, 3), LocalTime.of(23, 0), LocalTime.of(1, 0), 120,
                 "Spring", 1L, List.of("jpa", "트랜잭션"), "격리 수준 4단계 정리");
-        Mockito.when(studyLogService.findAll(any(Pageable.class)))
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(item), PageRequest.of(0, 20), 1));
 
         mockMvc.perform(get("/logs"))
@@ -179,7 +180,7 @@ class StudyLogControllerTest {
     @Test
     @DisplayName("같은 날 두 건은 상자 하나 · 머리에 합계")
     void listGroupsSameDayIntoOneBox() throws Exception {
-        Mockito.when(studyLogService.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class))).thenReturn(new PageImpl<>(
                 List.of(item("밤 세션", LocalTime.of(21, 0), 90), item("낮 세션", LocalTime.of(14, 0), 80)),
                 PageRequest.of(0, 20), 2));
 
@@ -205,7 +206,7 @@ class StudyLogControllerTest {
     @Test
     @DisplayName("마지막 페이지를 넘어선 요청은 마지막 페이지로 리다이렉트")
     void redirectsPageBeyondLast() throws Exception {
-        Mockito.when(studyLogService.findAll(any(Pageable.class)))
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(9, 20), 20));
 
         mockMvc.perform(get("/logs").param("page", "9"))

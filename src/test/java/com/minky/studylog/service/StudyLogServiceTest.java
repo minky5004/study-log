@@ -8,6 +8,7 @@ import com.minky.studylog.repository.StudyLogRepository;
 import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
+import com.minky.studylog.web.dto.StudyLogSearchCond;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Validator;
@@ -84,7 +85,7 @@ class StudyLogServiceTest {
         entityManager.flush();
         entityManager.clear();
 
-        Page<StudyLogListItem> page = studyLogService.findAll(PageRequest.of(0, 20,
+        Page<StudyLogListItem> page = studyLogService.findAll(new StudyLogSearchCond(), PageRequest.of(0, 20,
                 Sort.by(Sort.Direction.DESC, "studyDate", "startTime")));
 
         assertThat(page.getContent()).extracting(StudyLogListItem::title)
@@ -105,10 +106,44 @@ class StudyLogServiceTest {
         entityManager.flush();
         entityManager.clear();
 
-        Page<StudyLogListItem> page = studyLogService.findAll(PageRequest.of(0, 20));
+        Page<StudyLogListItem> page = studyLogService.findAll(new StudyLogSearchCond(), PageRequest.of(0, 20));
 
         assertThat(page.getContent()).extracting(StudyLogListItem::categoryColorIndex)
                 .doesNotHaveDuplicates();
+    }
+
+    @Test
+    @DisplayName("검색 조건의 분야·태그는 저장 형태로 맞춰짐 — 화면 입력 표기가 흔들려도 걸림")
+    void searchNormalizesCategoryAndTag() {
+        studyLogService.create(form("스프링", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring Boot", "JPA"));
+        entityManager.flush();
+        entityManager.clear();
+
+        // 문서에서 붙여넣은 형태 — 전각 공백(U+3000)·대소문자·앞뒤 공백이 섞인 입력
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setCategoryName("　SPRING　BOOT　");
+        cond.setTag("  Jpa ");
+
+        assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getContent())
+                .extracting(StudyLogListItem::title).containsExactly("스프링");
+    }
+
+    @Test
+    @DisplayName("공백뿐인 조건은 조건 없음 — 아무것도 걸리지 않는 검색이 되지 않게")
+    void blankConditionsAreTreatedAsAbsent() {
+        studyLogService.create(form("스프링", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", "jpa"));
+        entityManager.flush();
+        entityManager.clear();
+
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setKeyword("   ");
+        cond.setCategoryName("　");
+        cond.setTag(" ");
+
+        assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getTotalElements())
+                .isEqualTo(1);
     }
 
     @Test
@@ -120,7 +155,7 @@ class StudyLogServiceTest {
         entityManager.flush();
         entityManager.clear();
 
-        Page<StudyLogListItem> page = studyLogService.findAll(PageRequest.of(0, 20));
+        Page<StudyLogListItem> page = studyLogService.findAll(new StudyLogSearchCond(), PageRequest.of(0, 20));
 
         // 순서까지 단언하지 않는 것은 @ElementCollection Set 이 해시 순서로 실려 오기 때문 —
         // 입력 순서 보존은 컬렉션 타입·스키마를 바꿔야 해서 도메인 사이클에서 따로 다룬다

@@ -1,10 +1,13 @@
 package com.minky.studylog.service;
 
+import com.minky.studylog.domain.Category;
 import com.minky.studylog.domain.StudyLog;
 import com.minky.studylog.repository.StudyLogRepository;
 import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
+import com.minky.studylog.web.dto.StudyLogSearchCond;
+import java.util.function.UnaryOperator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,8 +46,30 @@ public class StudyLogService {
      * {@code open-in-view=false} 라 엔티티를 그대로 넘기면 템플릿에서 초기화가 터진다.
      */
     @Transactional(readOnly = true)
-    public Page<StudyLogListItem> findAll(Pageable pageable) {
-        return studyLogRepository.findPageWithCategory(pageable).map(StudyLogListItem::from);
+    public Page<StudyLogListItem> findAll(StudyLogSearchCond cond, Pageable pageable) {
+        return studyLogRepository.search(
+                        blankToNull(cond.getKeyword()),
+                        // 분야·태그는 저장 형태로 맞춰 넘긴다 — 화면 입력은 표기가 흔들린다
+                        map(cond.getCategoryName(), Category::toKey),
+                        map(cond.getTag(), TagNormalizer::normalize),
+                        cond.getFrom(),
+                        cond.getTo(),
+                        pageable)
+                .map(StudyLogListItem::from);
+    }
+
+    /**
+     * 빈 조건을 {@code null} 로 접는다. 쿼리가 {@code :param is null} 로 조건 유무를 가리므로
+     * 빈 문자열이 그대로 가면 아무것도 걸리지 않는 조건이 켜진다.
+     */
+    private static String blankToNull(String raw) {
+        return raw == null || raw.isBlank() ? null : raw.trim();
+    }
+
+    /** 정규화 결과가 비는 입력(공백뿐인 태그 등)도 조건 없음으로 접는다. */
+    private static String map(String raw, UnaryOperator<String> normalizer) {
+        String collapsed = blankToNull(raw);
+        return collapsed == null ? null : blankToNull(normalizer.apply(collapsed));
     }
 
     @Transactional(readOnly = true)
