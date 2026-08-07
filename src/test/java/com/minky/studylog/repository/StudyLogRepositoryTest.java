@@ -90,6 +90,8 @@ class StudyLogRepositoryTest {
         entityManager.clear();
 
         Statistics stats = statistics();
+        // 계측이 꺼지면 모든 카운터가 0 이라 상한 단언이 무엇도 재지 않고 통과한다
+        assertThat(stats.isStatisticsEnabled()).isTrue();
         stats.clear();
 
         Page<StudyLog> page = studyLogRepository.findPageWithCategory(
@@ -100,6 +102,8 @@ class StudyLogRepositoryTest {
             log.getTags().size();
         });
 
+        // 빈 페이지는 지연 로딩을 한 번도 건드리지 않고 상한을 통과한다 — 잰 대상부터 고정한다
+        assertThat(page.getContent()).hasSize(PAGE_SIZE);
         // 목록 1 + count 1 + 태그 배치 1
         assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(3);
     }

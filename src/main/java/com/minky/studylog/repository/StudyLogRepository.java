@@ -22,6 +22,11 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
      * 부르므로 {@code @BatchSize} 로 묶어 읽는 편이 낫다.
      *
      * <p>정렬은 {@code Pageable} 이 소유한다. 쿼리에 {@code order by} 를 박으면 중복된다.
+     *
+     * <p><b>두 쿼리의 대상 집합은 함께 움직여야 한다.</b> 지금 count 가 조인 없이 전체를 세도
+     * 맞는 것은 분야가 {@code optional = false} 라 inner join 이 행을 떨어뜨리지 않기
+     * 때문이다. 본문에 {@code where} 를 더하면서 count 를 그대로 두면 총 건수가 부풀고,
+     * 목록 화면의 마지막 페이지 리다이렉트가 멈춰 빈 페이지 링크가 남는다.
      */
     @Query(value = "select l from StudyLog l join fetch l.category",
             countQuery = "select count(l) from StudyLog l")
