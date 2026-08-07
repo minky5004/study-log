@@ -257,6 +257,102 @@ class StudyLogControllerTest {
     }
 
     @Test
+    @DisplayName("수정 폼은 저장된 값이 채워진 채로 열림")
+    void editFormPrefills() throws Exception {
+        Mockito.when(studyLogService.toForm(1L)).thenReturn(prefilled());
+
+        mockMvc.perform(get("/logs/1/edit"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("logs/form"))
+                .andExpect(model().attribute("form", hasProperty("title", is("자료 구조 복습"))))
+                // 폼 하나가 생성·수정을 겸하므로 제출 주소가 갈리는 지점
+                .andExpect(content().string(containsString("action=\"/logs/1\"")));
+    }
+
+    @Test
+    @DisplayName("없는 기록의 수정 폼은 404")
+    void editFormReturnsNotFound() throws Exception {
+        Mockito.when(studyLogService.toForm(999L)).thenThrow(new StudyLogNotFoundException(999L));
+
+        mockMvc.perform(get("/logs/999/edit"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/4xx"));
+    }
+
+    @Test
+    @DisplayName("수정 제출은 그 기록의 상세로 리다이렉트")
+    void updateRedirectsToDetail() throws Exception {
+        mockMvc.perform(post("/logs/1").param("title", "트랜잭션 격리 수준")
+                        .param("studyDate", "2026-08-03")
+                        .param("startTime", "23:00").param("endTime", "01:00")
+                        .param("categoryName", "Spring").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/logs/1"));
+
+        Mockito.verify(studyLogService).update(Mockito.eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("수정 실패로 되돌아온 폼도 제출 주소를 유지 — 경로의 id 는 요청 본문에서 오지 않는다")
+    void rejectedUpdateKeepsFormAction() throws Exception {
+        mockMvc.perform(post("/logs/1").param("title", "").param("studyDate", "2026-08-03")
+                        .param("startTime", "09:00").param("endTime", "10:00")
+                        .param("categoryName", "Spring").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("logs/form"))
+                .andExpect(content().string(containsString("action=\"/logs/1\"")));
+
+        Mockito.verify(studyLogService, Mockito.never()).update(any(), any());
+    }
+
+    @Test
+    @DisplayName("삭제는 확인 화면을 먼저 거침 — GET 으로는 지워지지 않음")
+    void deleteRequiresConfirmation() throws Exception {
+        Mockito.when(studyLogService.findById(1L)).thenReturn(detail("<p>큐</p>"));
+
+        mockMvc.perform(get("/logs/1/delete"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("logs/delete-confirm"))
+                .andExpect(content().string(containsString("자료 구조 복습")));
+
+        Mockito.verify(studyLogService, Mockito.never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("확인 화면의 제출만 실제 삭제 · 목록으로 리다이렉트")
+    void deleteRemovesAndRedirectsToList() throws Exception {
+        mockMvc.perform(post("/logs/1/delete").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/logs"));
+
+        Mockito.verify(studyLogService).delete(1L);
+    }
+
+    @Test
+    @DisplayName("상세에 수정·삭제로 가는 경로가 있음")
+    void detailLinksToEditAndDelete() throws Exception {
+        Mockito.when(studyLogService.findById(1L)).thenReturn(detail("<p>큐</p>"));
+
+        mockMvc.perform(get("/logs/1"))
+                .andExpect(content().string(containsString("href=\"/logs/1/edit\"")))
+                .andExpect(content().string(containsString("href=\"/logs/1/delete\"")));
+    }
+
+    private StudyLogForm prefilled() {
+        StudyLogForm form = new StudyLogForm();
+        form.setId(1L);
+        form.setTitle("자료 구조 복습");
+        form.setStudyDate(LocalDate.of(2026, 8, 6));
+        form.setStartTime(LocalTime.of(14, 0));
+        form.setEndTime(LocalTime.of(15, 20));
+        form.setCategoryName("CS");
+        form.setTagsCsv("자료 구조, 큐");
+        form.setSummary("큐와 스택 정리");
+        form.setNote("# 큐");
+        return form;
+    }
+
+    @Test
     @DisplayName("노트의 줄바꿈은 보존 — 마크다운이 한 줄로 뭉개지지 않게")
     void keepsNoteLineBreaks() throws Exception {
         Mockito.when(studyLogService.create(any())).thenReturn(1L);

@@ -2,13 +2,18 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout :: page(~{::title}, ~{::main})}">
 <head>
-    <title th:text="${log.title()} + ' · study-log'">기록 · study-log</title>
+    <title>기록 삭제 · study-log</title>
 </head>
 <body>
 <main class="container container-narrow">
-    <article class="entry">
+    <div class="page-head">
+        <h1>이 기록을 지울까요?</h1>
+    </div>
+    <p class="lead">되돌릴 수 없습니다. 지우기 전에 무엇이 사라지는지 확인하세요.</p>
+
+    <article class="entry doomed">
         <header class="entry-head">
-            <h1 th:text="${log.title()}">자료 구조 복습</h1>
+            <h2 class="entry-title" th:text="${log.title()}">자료 구조 복습</h2>
             <p class="entry-meta">
                 <span class="entry-category" th:classappend="'cat-' + ${log.categoryColorIndex()}"
                       th:text="${log.categoryName()}">CS</span>
@@ -26,16 +31,20 @@
         <p class="entry-summary" th:if="${!#strings.isEmpty(log.summary())}"
            th:text="${log.summary()}">큐와 스택 정리</p>
 
-        <!-- 새니타이즈를 마친 HTML 이라 utext. 원본 마크다운은 여기까지 오지 않는다 -->
-        <div class="note" th:if="${!#strings.isEmpty(log.noteHtml())}"
+        <!--
+          노트는 상세와 같은 새니타이즈를 마친 HTML. 앞부분만 보이도록 자르는 것은 CSS 로 —
+          HTML 문자열을 길이로 자르면 태그가 반쪽만 남아 남은 화면까지 무너진다
+        -->
+        <div class="note note-preview" th:if="${!#strings.isEmpty(log.noteHtml())}"
              th:utext="${log.noteHtml()}"></div>
         <p class="lead" th:if="${#strings.isEmpty(log.noteHtml())}">노트 없이 시간만 남긴 세션입니다.</p>
     </article>
 
-    <nav class="entry-nav">
-        <a class="button button-quiet" th:href="@{/logs}">목록으로</a>
-        <a class="button button-quiet" th:href="@{/logs/{id}/edit(id=${log.id()})}">수정</a>
-        <a class="button button-danger" th:href="@{/logs/{id}/delete(id=${log.id()})}">삭제</a>
+    <nav class="entry-nav confirm-actions">
+        <a class="button button-quiet" th:href="@{/logs/{id}(id=${log.id()})}">취소</a>
+        <form th:action="@{/logs/{id}/delete(id=${log.id()})}" method="post">
+            <button type="submit" class="button button-danger">삭제</button>
+        </form>
     </nav>
 </main>
 </body>

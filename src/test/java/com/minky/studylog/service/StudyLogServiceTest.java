@@ -10,8 +10,12 @@ import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.validation.Validator;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +33,7 @@ class StudyLogServiceTest {
 
     @Autowired StudyLogService studyLogService;
     @Autowired StudyLogRepository studyLogRepository;
+    @Autowired Validator validator;
     @PersistenceContext EntityManager entityManager;
 
     @Test
@@ -146,6 +151,140 @@ class StudyLogServiceTest {
     @DisplayName("없는 id 는 전용 예외 — 다른 조회 실패가 404 로 둔갑하지 않게 타입을 좁힌다")
     void throwsForMissingId() {
         assertThatThrownBy(() -> studyLogService.findById(9_999L))
+                .isInstanceOf(StudyLogNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("수정은 소요 시간 재계산 · 태그 교체")
+    void updateRecalculatesDurationAndTags() {
+        Long id = studyLogService.create(form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", "jpa"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        studyLogService.update(id, form("트랜잭션 격리 수준", LocalDate.of(2026, 8, 6),
+                LocalTime.of(23, 0), LocalTime.of(1, 30), "Spring", "트랜잭션, JPA"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        StudyLog updated = studyLogRepository.findById(id).orElseThrow();
+        assertThat(updated.getTitle()).isEqualTo("트랜잭션 격리 수준");
+        assertThat(updated.getDurationMinutes()).isEqualTo(150);
+        assertThat(updated.getTags()).containsExactlyInAnyOrder("트랜잭션", "jpa");
+        assertThat(updated.getCategory().getName()).isEqualTo("Spring");
+    }
+
+    /**
+     * 스칼라 필드가 그대로면 엔티티 행이 더럽지 않아 {@code @PreUpdate} 가 불리지 않는다 —
+     * 태그만 고친 기록의 수정 시각이 옛 값으로 남는 경로.
+     */
+    @Test
+    @DisplayName("태그만 바꿔도 수정 시각 갱신")
+    void updateStampsUpdatedAtWhenOnlyTagsChange() {
+        Long id = studyLogService.create(form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", "jpa"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        LocalDateTime beforeUpdate = LocalDateTime.now();
+        studyLogService.update(id, form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", "jpa, 큐"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        StudyLog updated = studyLogRepository.findById(id).orElseThrow();
+        assertThat(updated.getTags()).containsExactlyInAnyOrder("jpa", "큐");
+        assertThat(updated.getUpdatedAt()).isAfterOrEqualTo(beforeUpdate);
+    }
+
+    @Test
+    @DisplayName("없는 기록 수정은 전용 예외")
+    void updateThrowsForMissingId() {
+        StudyLogForm form = form("없는 기록", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", null);
+
+        assertThatThrownBy(() -> studyLogService.update(9_999L, form))
+                .isInstanceOf(StudyLogNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("삭제하면 태그까지 함께 사라짐")
+    void deleteRemovesLogAndTags() {
+        Long id = studyLogService.create(form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", "jpa, 큐"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        studyLogService.delete(id);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(studyLogRepository.findById(id)).isEmpty();
+        Number tagRows = (Number) entityManager
+                .createNativeQuery("select count(*) from study_log_tag").getSingleResult();
+        assertThat(tagRows.longValue()).isZero();
+    }
+
+    @Test
+    @DisplayName("없는 기록 삭제는 전용 예외")
+    void deleteThrowsForMissingId() {
+        assertThatThrownBy(() -> studyLogService.delete(9_999L))
+                .isInstanceOf(StudyLogNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("수정 폼 프리필은 노트를 원본 마크다운으로 — 렌더링된 HTML 을 다시 편집시키지 않는다")
+    void toFormPrefillsRawNote() {
+        StudyLogForm created = form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(14, 0), LocalTime.of(15, 20), "CS", "자료 구조, 큐");
+        created.setNote("# 큐\n\n- 선입선출");
+        Long id = studyLogService.create(created);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        StudyLogForm prefilled = studyLogService.toForm(id);
+
+        assertThat(prefilled.getId()).isEqualTo(id);
+        assertThat(prefilled.getTitle()).isEqualTo("자료 구조 복습");
+        assertThat(prefilled.getStudyDate()).isEqualTo(LocalDate.of(2026, 8, 6));
+        assertThat(prefilled.getStartTime()).isEqualTo(LocalTime.of(14, 0));
+        assertThat(prefilled.getCategoryName()).isEqualTo("CS");
+        assertThat(prefilled.getNote()).isEqualTo("# 큐\n\n- 선입선출");
+        assertThat(prefilled.getTagsCsv().split(",\\s*"))
+                .containsExactlyInAnyOrder("자료 구조", "큐");
+    }
+
+    /**
+     * 프리필이 입력보다 길어지면 손대지 않은 태그만으로 폼이 반려돼, 저장에 성공한 기록을
+     * 제목 한 줄도 못 고치게 된다.
+     */
+    @Test
+    @DisplayName("생성이 받아준 태그 입력은 수정 폼으로 되돌아와도 다시 제출 가능")
+    void toFormKeepsTagsCsvSubmittable() {
+        // 20개 · 각 24자 — 쉼표까지 499자로 태그 개수·길이·입력 길이 상한에 모두 걸리지 않는 최대치
+        String tagsCsv = IntStream.rangeClosed(1, 20)
+                .mapToObj(i -> "%02d".formatted(i) + "a".repeat(22))
+                .collect(Collectors.joining(","));
+        Long id = studyLogService.create(form("태그 가득한 기록", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", tagsCsv));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(validator.validate(studyLogService.toForm(id))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("없는 기록의 수정 폼은 전용 예외")
+    void toFormThrowsForMissingId() {
+        assertThatThrownBy(() -> studyLogService.toForm(9_999L))
                 .isInstanceOf(StudyLogNotFoundException.class);
     }
 

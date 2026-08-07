@@ -52,6 +52,10 @@ public class StudyLogController {
      */
     @InitBinder
     void normalizeSingleLineFields(WebDataBinder binder) {
+        // 어느 기록을 고치는지는 경로가 정한다. 본문의 id 까지 받으면 생성 폼이 남의 기록
+        // 수정 주소를 달고 되돌아오는 경로가 생긴다
+        binder.setDisallowedFields("id");
+
         for (String field : COLLAPSED_FIELDS) {
             binder.registerCustomEditor(String.class, field, new PropertyEditorSupport() {
                 @Override
@@ -93,11 +97,7 @@ public class StudyLogController {
 
     @PostMapping
     public String create(@Valid @ModelAttribute("form") StudyLogForm form, BindingResult binding) {
-        // 같은 시각은 0분과 24시간을 구별할 수 없어 도메인이 거부한다. 예외로 튀기 전에 폼에서 잡는다
-        if (form.getStartTime() != null && form.getStartTime().equals(form.getEndTime())) {
-            binding.rejectValue("endTime", "sameTime", "시작 시각과 종료 시각이 같을 수 없습니다");
-        }
-        rejectInvalidTags(form, binding);
+        rejectInvalidInput(form, binding);
 
         if (binding.hasErrors()) {
             return "logs/form";
@@ -111,6 +111,42 @@ public class StudyLogController {
         return "logs/detail";
     }
 
+    @GetMapping("/{id}/edit")
+    public String editForm(@PathVariable Long id, Model model) {
+        model.addAttribute("form", studyLogService.toForm(id));
+        return "logs/form";
+    }
+
+    @PostMapping("/{id}")
+    public String update(@PathVariable Long id, @Valid @ModelAttribute("form") StudyLogForm form,
+                         BindingResult binding) {
+        // 폼이 되돌아올 때 제출 주소를 다시 만드는 값이라 경로에서 채운다 — 본문 바인딩은 막혀 있다
+        form.setId(id);
+        rejectInvalidInput(form, binding);
+
+        if (binding.hasErrors()) {
+            return "logs/form";
+        }
+        studyLogService.update(id, form);
+        return "redirect:/logs/" + id;
+    }
+
+    /**
+     * 삭제는 확인 화면을 거친 POST 만 실행한다. 수천 자 노트가 오클릭 한 번에 사라지면
+     * 되돌릴 수단이 없고, GET 으로 지우면 링크 프리페치에도 반응한다.
+     */
+    @GetMapping("/{id}/delete")
+    public String deleteConfirm(@PathVariable Long id, Model model) {
+        model.addAttribute("log", studyLogService.findById(id));
+        return "logs/delete-confirm";
+    }
+
+    @PostMapping("/{id}/delete")
+    public String delete(@PathVariable Long id) {
+        studyLogService.delete(id);
+        return "redirect:/logs";
+    }
+
     /**
      * 없는 기록은 주소창 조작뿐 아니라 삭제된 기록의 링크로도 늘 들어온다.
      * 기본 처리에 맡기면 500 스택트레이스가 나가 없는 것과 고장 난 것이 구별되지 않는다.
@@ -119,6 +155,15 @@ public class StudyLogController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String notFound() {
         return "error/4xx";
+    }
+
+    /** 생성·수정이 같은 폼을 쓰므로 애너테이션 밖 검증도 한 자리에 둔다. */
+    private void rejectInvalidInput(StudyLogForm form, BindingResult binding) {
+        // 같은 시각은 0분과 24시간을 구별할 수 없어 도메인이 거부한다. 예외로 튀기 전에 폼에서 잡는다
+        if (form.getStartTime() != null && form.getStartTime().equals(form.getEndTime())) {
+            binding.rejectValue("endTime", "sameTime", "시작 시각과 종료 시각이 같을 수 없습니다");
+        }
+        rejectInvalidTags(form, binding);
     }
 
     /** 태그 컬럼이 50자라, 넘는 값은 저장 시점에 터진다. 정규화한 결과로 미리 잰다. */
