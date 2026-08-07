@@ -8,6 +8,7 @@ import com.minky.studylog.repository.StudyLogRepository;
 import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
+import com.minky.studylog.web.dto.StudyLogSearchCond;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Validator;
@@ -84,7 +85,7 @@ class StudyLogServiceTest {
         entityManager.flush();
         entityManager.clear();
 
-        Page<StudyLogListItem> page = studyLogService.findAll(PageRequest.of(0, 20,
+        Page<StudyLogListItem> page = studyLogService.findAll(new StudyLogSearchCond(), PageRequest.of(0, 20,
                 Sort.by(Sort.Direction.DESC, "studyDate", "startTime")));
 
         assertThat(page.getContent()).extracting(StudyLogListItem::title)
@@ -105,10 +106,87 @@ class StudyLogServiceTest {
         entityManager.flush();
         entityManager.clear();
 
-        Page<StudyLogListItem> page = studyLogService.findAll(PageRequest.of(0, 20));
+        Page<StudyLogListItem> page = studyLogService.findAll(new StudyLogSearchCond(), PageRequest.of(0, 20));
 
         assertThat(page.getContent()).extracting(StudyLogListItem::categoryColorIndex)
                 .doesNotHaveDuplicates();
+    }
+
+    @Test
+    @DisplayName("검색 조건의 분야·태그는 저장 형태로 맞춰짐 — 화면 입력 표기가 흔들려도 걸림")
+    void searchNormalizesCategoryAndTag() {
+        studyLogService.create(form("스프링", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring Boot", "JPA"));
+        entityManager.flush();
+        entityManager.clear();
+
+        // 문서에서 붙여넣은 형태 — 전각 공백(U+3000)·대소문자·앞뒤 공백이 섞인 입력
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setCategoryName("\u3000SPRING\u3000BOOT\u3000");
+        cond.setTag("  Jpa ");
+
+        assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getContent())
+                .extracting(StudyLogListItem::title).containsExactly("스프링");
+    }
+
+    @Test
+    @DisplayName("키워드의 LIKE 특수문자는 글자로 취급 — 와일드카드로 새면 전건이 걸린다")
+    void keywordTreatsLikeMetaCharactersAsLiterals() {
+        seed("진척도 100%");
+        seed("a_b 표기");
+        seed("axb 표기");
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(matches("100%")).isEqualTo(1);
+        assertThat(matches("%")).isEqualTo(1);
+        assertThat(matches("a_b")).isEqualTo(1);
+        // 한 글자 와일드카드가 새면 세 건 전부 걸린다
+        assertThat(matches("_")).isEqualTo(1);
+    }
+
+    private void seed(String title) {
+        studyLogService.create(form(title, LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", "jpa"));
+    }
+
+    private long matches(String keyword) {
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setKeyword(keyword);
+        return studyLogService.findAll(cond, PageRequest.of(0, 20)).getTotalElements();
+    }
+
+    @Test
+    @DisplayName("키워드도 유니코드 공백을 접음 — 붙여넣은 비분리 공백에 무결과가 되지 않게")
+    void searchCollapsesUnicodeWhitespaceInKeyword() {
+        studyLogService.create(form("트랜잭션 격리 수준", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", "jpa"));
+        entityManager.flush();
+        entityManager.clear();
+
+        // 비분리 공백(U+00A0)은 String.isBlank()·trim() 이 보지 못한다 — 분야·태그는 이미 접힌다
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setKeyword("\u00A0격리\u00A0수준\u00A0");
+
+        assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getTotalElements())
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("공백뿐인 조건은 조건 없음 — 아무것도 걸리지 않는 검색이 되지 않게")
+    void blankConditionsAreTreatedAsAbsent() {
+        studyLogService.create(form("스프링", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", "jpa"));
+        entityManager.flush();
+        entityManager.clear();
+
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setKeyword("   ");
+        cond.setCategoryName("\u3000");
+        cond.setTag(" ");
+
+        assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getTotalElements())
+                .isEqualTo(1);
     }
 
     @Test
@@ -120,7 +198,7 @@ class StudyLogServiceTest {
         entityManager.flush();
         entityManager.clear();
 
-        Page<StudyLogListItem> page = studyLogService.findAll(PageRequest.of(0, 20));
+        Page<StudyLogListItem> page = studyLogService.findAll(new StudyLogSearchCond(), PageRequest.of(0, 20));
 
         // 순서까지 단언하지 않는 것은 @ElementCollection Set 이 해시 순서로 실려 오기 때문 —
         // 입력 순서 보존은 컬렉션 타입·스키마를 바꿔야 해서 도메인 사이클에서 따로 다룬다

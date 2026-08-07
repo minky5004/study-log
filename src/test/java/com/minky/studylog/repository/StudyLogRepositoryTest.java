@@ -19,6 +19,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -30,6 +31,7 @@ class StudyLogRepositoryTest {
     private static final int PAGE_SIZE = 20;
     private static final Sort LIST_SORT =
             Sort.by(Sort.Direction.DESC, "studyDate", "startTime", "id");
+    private static final Pageable PAGE = PageRequest.of(0, PAGE_SIZE, LIST_SORT);
 
     @Autowired StudyLogRepository studyLogRepository;
     @Autowired CategoryRepository categoryRepository;
@@ -94,8 +96,7 @@ class StudyLogRepositoryTest {
         assertThat(stats.isStatisticsEnabled()).isTrue();
         stats.clear();
 
-        Page<StudyLog> page = studyLogRepository.findPageWithCategory(
-                PageRequest.of(0, PAGE_SIZE, LIST_SORT));
+        Page<StudyLog> page = studyLogRepository.search(null, null, null, null, null, PAGE);
         // 화면에 나가는 접근을 그대로 재현한다 — 목록 DTO 가 분야명과 태그를 모두 읽는다
         page.getContent().forEach(log -> {
             log.getCategory().getName();
@@ -106,6 +107,85 @@ class StudyLogRepositoryTest {
         assertThat(page.getContent()).hasSize(PAGE_SIZE);
         // 목록 1 + count 1 + 태그 배치 1
         assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("키워드는 제목·요약·노트 본문을 함께 훑음")
+    void searchesTitleSummaryAndNote() {
+        saveLog("JPA 기초", "요약", "본문 없음");
+        saveLog("무관한 제목", "격리 수준 요약", "본문 없음");
+        saveLog("무관한 제목2", "요약", "# 트랜잭션 격리 수준\n본문");
+        flushAndClear();
+
+        assertThat(search("격리").getTotalElements()).isEqualTo(2);
+        assertThat(search("JPA").getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("키워드 대소문자 무시")
+    void searchIsCaseInsensitive() {
+        saveLog("JPA 기초", "요약", null);
+        flushAndClear();
+
+        assertThat(search("jpa").getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("노트·요약이 비어도 제목 일치 기록이 누락되지 않음")
+    void nullNoteDoesNotBreakSearch() {
+        saveLog("JPA 기초", null, null);
+        flushAndClear();
+
+        assertThat(search("기초").getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("분야 · 태그 · 기간 조합으로 좁혀짐")
+    void combinesFilters() {
+        LocalDate inRange = LocalDate.of(2026, 8, 10);
+        saveLog("대상", "요약", null, "Spring", List.of("jpa"), inRange);
+        saveLog("분야 다름", "요약", null, "CS", List.of("jpa"), inRange);
+        saveLog("태그 다름", "요약", null, "Spring", List.of("http"), inRange);
+        saveLog("기간 밖", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 7, 31));
+        flushAndClear();
+
+        Page<StudyLog> found = studyLogRepository.search(null, Category.toKey("spring"), "jpa",
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31), PAGE);
+
+        assertThat(found.getContent()).extracting(StudyLog::getTitle).containsExactly("대상");
+    }
+
+    @Test
+    @DisplayName("조건이 전부 비면 전체 조회")
+    void emptyConditionReturnsAll() {
+        saveLog("하나", "요약", null);
+        saveLog("둘", "요약", null);
+        flushAndClear();
+
+        assertThat(studyLogRepository.search(null, null, null, null, null, PAGE).getTotalElements())
+                .isEqualTo(2);
+    }
+
+    /** 레포지토리는 감싸기·이스케이프가 끝난 패턴을 받는다 — 그 규칙 자체는 서비스가 소유. */
+    private Page<StudyLog> search(String keyword) {
+        return studyLogRepository.search("%" + keyword + "%", null, null, null, null, PAGE);
+    }
+
+    private void saveLog(String title, String summary, String note) {
+        saveLog(title, summary, note, "Spring", List.of("jpa"), LocalDate.of(2026, 8, 3));
+    }
+
+    private void saveLog(String title, String summary, String note,
+            String categoryName, List<String> tags, LocalDate date) {
+        Category category = categoryRepository.findByNameKey(Category.toKey(categoryName))
+                .orElseGet(() -> categoryRepository.save(new Category(categoryName)));
+        studyLogRepository.save(new StudyLog(title, date, LocalTime.of(20, 0), LocalTime.of(21, 0),
+                category, new LinkedHashSet<>(tags), summary, note));
+    }
+
+    private void flushAndClear() {
+        entityManager.flush();
+        entityManager.clear();
     }
 
     private Statistics statistics() {

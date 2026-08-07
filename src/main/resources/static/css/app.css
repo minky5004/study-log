@@ -572,7 +572,48 @@ button:focus-visible {
     border-top: 1px solid var(--line);
 }
 
+/* ── 검색 ───────────────────────────────────────── */
+
+/*
+ * 조건 다섯을 한 줄에 편다. 접어 두면 무엇으로 좁힌 목록인지 화면에서 사라져,
+ * 결과가 적을 때 기록이 없는 것인지 조건이 좁은 것인지 구별되지 않는다.
+ * 바탕을 비워 두는 것은 입력칸(--panel)이 배경보다 밝아야 칸 경계가 보이기 때문.
+ */
+.search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+}
+
+.search .field {
+    flex: 1 1 8rem;
+}
+
+/*
+ * 키워드는 나머지 넷보다 넓게 — 가장 자주 치는 칸이고 들어가는 말도 길다.
+ * 선택자를 `.search` 로 한정하는 것은 앞의 `.search .field` 와 특이도를 맞추기 위해서 —
+ * 클래스 하나로 두면 순서가 뒤라도 특이도에서 져 폭이 그대로다.
+ */
+.search .search-keyword {
+    flex: 3 1 14rem;
+}
+
+.search-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
 @media (max-width: 40rem) {
+    /* 좁은 화면에서 버튼이 마지막 입력칸 옆에 끼면 눌리는 폭이 무너진다 */
+    .search-actions {
+        flex-basis: 100%;
+    }
+
     .field-row {
         flex-wrap: wrap;
     }

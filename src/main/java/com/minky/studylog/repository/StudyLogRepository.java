@@ -1,6 +1,7 @@
 package com.minky.studylog.repository;
 
 import com.minky.studylog.domain.StudyLog;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +16,8 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
     Optional<StudyLog> findWithCategoryById(@Param("id") Long id);
 
     /**
-     * 목록 한 페이지를 분야와 함께 읽는다. 기본 {@code findAll} 은 행마다 분야를 따로 조회한다.
+     * 목록 한 페이지를 분야와 함께 읽는다. 조건이 전부 {@code null} 이면 전체 조회라
+     * 무조건 목록과 검색 결과가 같은 경로를 탄다.
      *
      * <p>{@code join fetch} 대상이 {@code @ManyToOne} 이라 페이징과 함께 써도 메모리 페이징으로
      * 떨어지지 않는다. 태그는 컬렉션이라 fetch join 하지 않는다 — 카티전 곱과 메모리 페이징을
@@ -23,12 +25,48 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
      *
      * <p>정렬은 {@code Pageable} 이 소유한다. 쿼리에 {@code order by} 를 박으면 중복된다.
      *
-     * <p><b>두 쿼리의 대상 집합은 함께 움직여야 한다.</b> 지금 count 가 조인 없이 전체를 세도
-     * 맞는 것은 분야가 {@code optional = false} 라 inner join 이 행을 떨어뜨리지 않기
-     * 때문이다. 본문에 {@code where} 를 더하면서 count 를 그대로 두면 총 건수가 부풀고,
-     * 목록 화면의 마지막 페이지 리다이렉트가 멈춰 빈 페이지 링크가 남는다.
+     * <p><b>두 쿼리의 조건은 함께 움직여야 한다.</b> count 가 본문보다 넓게 세면 총 건수가
+     * 부풀고, 목록 화면의 마지막 페이지 리다이렉트가 멈춰 빈 페이지 링크가 남는다.
+     *
+     * <p>분야는 표시 이름이 아니라 정규화 키로 맞춘다 — 키 파생은
+     * {@link com.minky.studylog.domain.Category#toKey}가 소유하고 공백 축약까지 포함하므로
+     * SQL 의 {@code lower()} 로 대신하면 붙여넣은 전각 공백이 든 분야명이 걸리지 않는다.
+     * 키워드는 표기를 보존할 대상이 아니라 {@code lower()} 로 족하다.
+     *
+     * <p>{@code coalesce} 는 요약·노트가 비어도 제목 일치 기록이 남게 한다 — 세 칸을
+     * 이어붙여 한 번에 훑는 형태로 바꾸면 빈 칸 하나가 행 전체를 떨어뜨린다.
+     *
+     * <p>키워드는 이미 {@code %} 로 감싸고 특수문자를 이스케이프한 <b>패턴</b>으로 받는다 —
+     * 감싸기를 쿼리 쪽 {@code concat} 에 두면 이스케이프한 자리와 갈라져 한쪽만 고치는 경로가
+     * 생긴다. {@code escape} 문자는 서비스의 이스케이프 규칙과 짝이다.
      */
-    @Query(value = "select l from StudyLog l join fetch l.category",
-            countQuery = "select count(l) from StudyLog l")
-    Page<StudyLog> findPageWithCategory(Pageable pageable);
+    @Query(value = """
+            select l from StudyLog l
+            join fetch l.category c
+            where (:keywordPattern is null
+                   or lower(l.title) like lower(:keywordPattern) escape '\\'
+                   or lower(coalesce(l.summary, '')) like lower(:keywordPattern) escape '\\'
+                   or lower(coalesce(l.note, '')) like lower(:keywordPattern) escape '\\')
+              and (:categoryKey is null or c.nameKey = :categoryKey)
+              and (:tag is null or :tag member of l.tags)
+              and (:from is null or l.studyDate >= :from)
+              and (:to is null or l.studyDate <= :to)
+            """,
+            countQuery = """
+            select count(l) from StudyLog l
+            where (:keywordPattern is null
+                   or lower(l.title) like lower(:keywordPattern) escape '\\'
+                   or lower(coalesce(l.summary, '')) like lower(:keywordPattern) escape '\\'
+                   or lower(coalesce(l.note, '')) like lower(:keywordPattern) escape '\\')
+              and (:categoryKey is null or l.category.nameKey = :categoryKey)
+              and (:tag is null or :tag member of l.tags)
+              and (:from is null or l.studyDate >= :from)
+              and (:to is null or l.studyDate <= :to)
+            """)
+    Page<StudyLog> search(@Param("keywordPattern") String keywordPattern,
+                          @Param("categoryKey") String categoryKey,
+                          @Param("tag") String tag,
+                          @Param("from") LocalDate from,
+                          @Param("to") LocalDate to,
+                          Pageable pageable);
 }

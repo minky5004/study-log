@@ -6,8 +6,11 @@ import com.minky.studylog.service.TagNormalizer;
 import com.minky.studylog.web.dto.StudyLogDay;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
+import com.minky.studylog.web.dto.StudyLogSearchCond;
 import jakarta.validation.Valid;
 import java.beans.PropertyEditorSupport;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -72,21 +75,56 @@ public class StudyLogController {
     }
 
     @GetMapping
-    public String list(@RequestParam(defaultValue = "0") int page, Model model) {
+    public String list(@RequestParam(defaultValue = "0") int page,
+            @ModelAttribute("cond") StudyLogSearchCond cond, Model model) {
         // 음수 페이지는 PageRequest 가 예외로 거부한다 — 주소창 조작이 500 이 되지 않게 접는다
         int requested = Math.max(0, page);
-        Page<StudyLogListItem> logs = studyLogService.findAll(PageRequest.of(requested, PAGE_SIZE,
+        Page<StudyLogListItem> logs = studyLogService.findAll(cond, PageRequest.of(requested, PAGE_SIZE,
                 // id 를 마지막 정렬 키로 둬야 날짜·시각이 같은 기록의 순서가 페이지마다 흔들리지 않는다
                 Sort.by(Sort.Direction.DESC, "studyDate", "startTime", "id")));
 
         if (requested > 0 && requested >= logs.getTotalPages()) {
-            return "redirect:/logs?page=" + Math.max(0, logs.getTotalPages() - 1);
+            return "redirect:" + logsUrl(cond, Math.max(0, logs.getTotalPages() - 1));
         }
 
         model.addAttribute("logs", logs);
         // 묶기가 페이징 뒤에 오는 순서라 상자 합계가 그 페이지에 보이는 세션의 합과 항상 같다
         model.addAttribute("days", StudyLogDay.groupByDate(logs.getContent()));
+        model.addAttribute("prevPageUrl", logs.hasPrevious() ? logsUrl(cond, requested - 1) : null);
+        model.addAttribute("nextPageUrl", logs.hasNext() ? logsUrl(cond, requested + 1) : null);
         return "logs/list";
+    }
+
+    /**
+     * 페이지 이동과 범위 초과 리다이렉트가 쓰는 목록 주소. 조건을 한 곳에서 실어야 어느 한쪽만
+     * 조건을 흘리는 경로가 생기지 않는다 — 2페이지로 넘어가며 검색이 풀리면 결과가 뒤바뀐다.
+     *
+     * <p>빈 조건은 붙이지 않는다. 화면에 보이는 주소가 사용자가 건 조건과 같아야 공유한 링크가
+     * 같은 화면을 연다.
+     */
+    private String logsUrl(StudyLogSearchCond cond, int page) {
+        StringBuilder url = new StringBuilder("/logs?");
+        appendParam(url, "keyword", cond.getKeyword());
+        appendParam(url, "categoryName", cond.getCategoryName());
+        appendParam(url, "tag", cond.getTag());
+        appendParam(url, "from", cond.getFrom());
+        appendParam(url, "to", cond.getTo());
+        return url.append("page=").append(page).toString();
+    }
+
+    /**
+     * 값을 폼 인코딩 규칙으로 싣는다. 질의 문자열 파싱이 {@code +} 를 공백으로 되돌리므로
+     * RFC 3986 기준 인코더({@code UriComponentsBuilder.encode} · {@code UriUtils})는 쓸 수 없다 —
+     * 셋 다 {@code +} 를 질의에 허용된 글자로 보고 그대로 두어, {@code C++} 검색의 2페이지가
+     * {@code C  } 검색이 된다.
+     */
+    private static void appendParam(StringBuilder url, String name, Object value) {
+        String raw = value == null ? null : value.toString();
+        if (raw == null || raw.isBlank()) {
+            return;
+        }
+        url.append(name).append('=')
+                .append(URLEncoder.encode(raw.trim(), StandardCharsets.UTF_8)).append('&');
     }
 
     @GetMapping("/new")
