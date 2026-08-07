@@ -594,8 +594,12 @@ button:focus-visible {
     flex: 1 1 8rem;
 }
 
-/* 키워드는 나머지 넷보다 넓게 — 가장 자주 치는 칸이고 들어가는 말도 길다 */
-.search-keyword {
+/*
+ * 키워드는 나머지 넷보다 넓게 — 가장 자주 치는 칸이고 들어가는 말도 길다.
+ * 선택자를 `.search` 로 한정하는 것은 앞의 `.search .field` 와 특이도를 맞추기 위해서 —
+ * 클래스 하나로 두면 순서가 뒤라도 특이도에서 져 폭이 그대로다.
+ */
+.search .search-keyword {
     flex: 3 1 14rem;
 }
 

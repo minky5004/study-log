@@ -122,11 +122,54 @@ class StudyLogServiceTest {
 
         // 문서에서 붙여넣은 형태 — 전각 공백(U+3000)·대소문자·앞뒤 공백이 섞인 입력
         StudyLogSearchCond cond = new StudyLogSearchCond();
-        cond.setCategoryName("　SPRING　BOOT　");
+        cond.setCategoryName("\u3000SPRING\u3000BOOT\u3000");
         cond.setTag("  Jpa ");
 
         assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getContent())
                 .extracting(StudyLogListItem::title).containsExactly("스프링");
+    }
+
+    @Test
+    @DisplayName("키워드의 LIKE 특수문자는 글자로 취급 — 와일드카드로 새면 전건이 걸린다")
+    void keywordTreatsLikeMetaCharactersAsLiterals() {
+        seed("진척도 100%");
+        seed("a_b 표기");
+        seed("axb 표기");
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(matches("100%")).isEqualTo(1);
+        assertThat(matches("%")).isEqualTo(1);
+        assertThat(matches("a_b")).isEqualTo(1);
+        // 한 글자 와일드카드가 새면 세 건 전부 걸린다
+        assertThat(matches("_")).isEqualTo(1);
+    }
+
+    private void seed(String title) {
+        studyLogService.create(form(title, LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", "jpa"));
+    }
+
+    private long matches(String keyword) {
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setKeyword(keyword);
+        return studyLogService.findAll(cond, PageRequest.of(0, 20)).getTotalElements();
+    }
+
+    @Test
+    @DisplayName("키워드도 유니코드 공백을 접음 — 붙여넣은 비분리 공백에 무결과가 되지 않게")
+    void searchCollapsesUnicodeWhitespaceInKeyword() {
+        studyLogService.create(form("트랜잭션 격리 수준", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", "jpa"));
+        entityManager.flush();
+        entityManager.clear();
+
+        // 비분리 공백(U+00A0)은 String.isBlank()·trim() 이 보지 못한다 — 분야·태그는 이미 접힌다
+        StudyLogSearchCond cond = new StudyLogSearchCond();
+        cond.setKeyword("\u00A0격리\u00A0수준\u00A0");
+
+        assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getTotalElements())
+                .isEqualTo(1);
     }
 
     @Test
@@ -139,7 +182,7 @@ class StudyLogServiceTest {
 
         StudyLogSearchCond cond = new StudyLogSearchCond();
         cond.setKeyword("   ");
-        cond.setCategoryName("　");
+        cond.setCategoryName("\u3000");
         cond.setTag(" ");
 
         assertThat(studyLogService.findAll(cond, PageRequest.of(0, 20)).getTotalElements())

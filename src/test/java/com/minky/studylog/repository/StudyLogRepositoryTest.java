@@ -166,8 +166,9 @@ class StudyLogRepositoryTest {
                 .isEqualTo(2);
     }
 
+    /** 레포지토리는 감싸기·이스케이프가 끝난 패턴을 받는다 — 그 규칙 자체는 서비스가 소유. */
     private Page<StudyLog> search(String keyword) {
-        return studyLogRepository.search(keyword, null, null, null, null, PAGE);
+        return studyLogRepository.search("%" + keyword + "%", null, null, null, null, PAGE);
     }
 
     private void saveLog(String title, String summary, String note) {

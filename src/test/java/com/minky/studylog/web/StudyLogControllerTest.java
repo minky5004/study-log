@@ -145,6 +145,30 @@ class StudyLogControllerTest {
                 .andExpect(content().string(containsString("href=\"/logs/1\"")));
     }
 
+    @Test
+    @DisplayName("페이지 링크는 조건을 되읽을 수 있는 형태로 실음 — `+` 가 공백으로 풀리지 않게")
+    void pageLinkKeepsKeywordEncoded() throws Exception {
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(item("C++ 정리", LocalTime.of(9, 0), 60)),
+                        PageRequest.of(0, 20), 21));
+
+        // 질의 문자열 파싱은 `+` 를 공백으로 되돌린다 — 링크에 그대로 실리면 2페이지가 다른 검색
+        mockMvc.perform(get("/logs").param("keyword", "C++"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("nextPageUrl", "/logs?keyword=C%2B%2B&page=1"));
+    }
+
+    @Test
+    @DisplayName("범위 밖 페이지 리다이렉트도 같은 규칙으로 조건 유지")
+    void outOfRangeRedirectKeepsConditions() throws Exception {
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(9, 20), 21));
+
+        mockMvc.perform(get("/logs").param("keyword", "C++").param("tag", "jpa").param("page", "9"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/logs?keyword=C%2B%2B&tag=jpa&page=1"));
+    }
+
     private StudyLogDetail detail(String noteHtml) {
         return new StudyLogDetail(1L, "자료 구조 복습", LocalDate.of(2026, 8, 6),
                 LocalTime.of(14, 0), LocalTime.of(15, 20), 80, "CS", 2L,

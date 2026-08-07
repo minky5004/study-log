@@ -9,7 +9,8 @@ import com.minky.studylog.web.dto.StudyLogListItem;
 import com.minky.studylog.web.dto.StudyLogSearchCond;
 import jakarta.validation.Valid;
 import java.beans.PropertyEditorSupport;
-import java.util.Optional;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,7 +29,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Controller
 @RequestMapping("/logs")
@@ -103,18 +103,28 @@ public class StudyLogController {
      * 같은 화면을 연다.
      */
     private String logsUrl(StudyLogSearchCond cond, int page) {
-        return UriComponentsBuilder.fromPath("/logs")
-                .queryParamIfPresent("keyword", present(cond.getKeyword()))
-                .queryParamIfPresent("categoryName", present(cond.getCategoryName()))
-                .queryParamIfPresent("tag", present(cond.getTag()))
-                .queryParamIfPresent("from", Optional.ofNullable(cond.getFrom()))
-                .queryParamIfPresent("to", Optional.ofNullable(cond.getTo()))
-                .queryParam("page", page)
-                .build().encode().toUriString();
+        StringBuilder url = new StringBuilder("/logs?");
+        appendParam(url, "keyword", cond.getKeyword());
+        appendParam(url, "categoryName", cond.getCategoryName());
+        appendParam(url, "tag", cond.getTag());
+        appendParam(url, "from", cond.getFrom());
+        appendParam(url, "to", cond.getTo());
+        return url.append("page=").append(page).toString();
     }
 
-    private static Optional<String> present(String raw) {
-        return raw == null || raw.isBlank() ? Optional.empty() : Optional.of(raw.trim());
+    /**
+     * 값을 폼 인코딩 규칙으로 싣는다. 질의 문자열 파싱이 {@code +} 를 공백으로 되돌리므로
+     * RFC 3986 기준 인코더({@code UriComponentsBuilder.encode} · {@code UriUtils})는 쓸 수 없다 —
+     * 셋 다 {@code +} 를 질의에 허용된 글자로 보고 그대로 두어, {@code C++} 검색의 2페이지가
+     * {@code C  } 검색이 된다.
+     */
+    private static void appendParam(StringBuilder url, String name, Object value) {
+        String raw = value == null ? null : value.toString();
+        if (raw == null || raw.isBlank()) {
+            return;
+        }
+        url.append(name).append('=')
+                .append(URLEncoder.encode(raw.trim(), StandardCharsets.UTF_8)).append('&');
     }
 
     @GetMapping("/new")

@@ -48,7 +48,7 @@ public class StudyLogService {
     @Transactional(readOnly = true)
     public Page<StudyLogListItem> findAll(StudyLogSearchCond cond, Pageable pageable) {
         return studyLogRepository.search(
-                        blankToNull(cond.getKeyword()),
+                        likePattern(cond.getKeyword()),
                         // 분야·태그는 저장 형태로 맞춰 넘긴다 — 화면 입력은 표기가 흔들린다
                         map(cond.getCategoryName(), Category::toKey),
                         map(cond.getTag(), TagNormalizer::normalize),
@@ -59,11 +59,36 @@ public class StudyLogService {
     }
 
     /**
+     * 키워드를 LIKE 패턴으로 감싼다. 특수문자를 먼저 이스케이프하지 않으면 사용자가 친 글자가
+     * 와일드카드로 새어 나간다 — {@code _} 한 글자가 전건을 걸고 {@code 100%} 가 {@code 100} 으로
+     * 시작하는 모든 기록을 건다. 역슬래시를 먼저 바꾸는 순서라 뒤에 붙는 이스케이프가 다시
+     * 이스케이프되지 않는다.
+     */
+    private static String likePattern(String raw) {
+        String collapsed = blankToNull(raw);
+        if (collapsed == null) {
+            return null;
+        }
+        String escaped = collapsed.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return "%" + escaped + "%";
+    }
+
+    /**
      * 빈 조건을 {@code null} 로 접는다. 쿼리가 {@code :param is null} 로 조건 유무를 가리므로
      * 빈 문자열이 그대로 가면 아무것도 걸리지 않는 조건이 켜진다.
+     *
+     * <p>공백 축약에 유니코드 인식 {@code (?U)} 를 붙이는 것은 {@code String.isBlank()} 와
+     * {@code trim()} 이 비분리 공백(U+00A0)을 보지 못하기 때문 — 문서에서 붙여넣은 키워드가
+     * 조용히 무결과가 된다. 분야·태그는 각자의 정규화가 이미 같은 처리를 한다.
      */
     private static String blankToNull(String raw) {
-        return raw == null || raw.isBlank() ? null : raw.trim();
+        if (raw == null) {
+            return null;
+        }
+        String collapsed = raw.replaceAll("(?U)\\s+", " ").trim();
+        return collapsed.isEmpty() ? null : collapsed;
     }
 
     /** 정규화 결과가 비는 입력(공백뿐인 태그 등)도 조건 없음으로 접는다. */
