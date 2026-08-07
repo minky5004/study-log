@@ -9,17 +9,27 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
 class StudyLogRepositoryTest {
+
+    /** 컨트롤러가 목록에 쓰는 크기·정렬 — 계측이 화면과 다른 조건을 재면 회귀를 놓친다. */
+    private static final int PAGE_SIZE = 20;
+    private static final Sort LIST_SORT =
+            Sort.by(Sort.Direction.DESC, "studyDate", "startTime", "id");
 
     @Autowired StudyLogRepository studyLogRepository;
     @Autowired CategoryRepository categoryRepository;
@@ -65,5 +75,47 @@ class StudyLogRepositoryTest {
 
         assertThatThrownBy(() -> categoryRepository.saveAndFlush(new Category("spring")))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("목록 한 페이지 조회에 분야 쿼리가 행마다 나가지 않음")
+    void listPageDoesNotTriggerNPlusOne() {
+        // 분야를 행마다 다르게 둔다 — 한 분야를 공유하면 영속성 컨텍스트가 첫 조회 뒤 캐시해
+        // N+1 이 1회로 접히고, fetch join 을 되돌려도 테스트가 통과해 버린다
+        for (int i = 0; i < PAGE_SIZE; i++) {
+            Category category = categoryRepository.save(new Category("분야 " + i));
+            studyLogRepository.save(sample("기록 " + i, category));
+        }
+        entityManager.flush();
+        entityManager.clear();
+
+        Statistics stats = statistics();
+        // 계측이 꺼지면 모든 카운터가 0 이라 상한 단언이 무엇도 재지 않고 통과한다
+        assertThat(stats.isStatisticsEnabled()).isTrue();
+        stats.clear();
+
+        Page<StudyLog> page = studyLogRepository.findPageWithCategory(
+                PageRequest.of(0, PAGE_SIZE, LIST_SORT));
+        // 화면에 나가는 접근을 그대로 재현한다 — 목록 DTO 가 분야명과 태그를 모두 읽는다
+        page.getContent().forEach(log -> {
+            log.getCategory().getName();
+            log.getTags().size();
+        });
+
+        // 빈 페이지는 지연 로딩을 한 번도 건드리지 않고 상한을 통과한다 — 잰 대상부터 고정한다
+        assertThat(page.getContent()).hasSize(PAGE_SIZE);
+        // 목록 1 + count 1 + 태그 배치 1
+        assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(3);
+    }
+
+    private Statistics statistics() {
+        return entityManager.getEntityManager().getEntityManagerFactory()
+                .unwrap(SessionFactory.class).getStatistics();
+    }
+
+    private StudyLog sample(String title, Category category) {
+        return new StudyLog(title, LocalDate.of(2026, 8, 3),
+                LocalTime.of(20, 0), LocalTime.of(21, 0),
+                category, new LinkedHashSet<>(List.of("jpa")), "요약", "# 노트");
     }
 }

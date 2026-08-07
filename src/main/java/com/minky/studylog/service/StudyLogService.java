@@ -44,7 +44,7 @@ public class StudyLogService {
      */
     @Transactional(readOnly = true)
     public Page<StudyLogListItem> findAll(Pageable pageable) {
-        return studyLogRepository.findAll(pageable).map(StudyLogListItem::from);
+        return studyLogRepository.findPageWithCategory(pageable).map(StudyLogListItem::from);
     }
 
     @Transactional(readOnly = true)
