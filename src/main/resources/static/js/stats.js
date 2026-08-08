@@ -5,6 +5,11 @@
 // 남기는 것이 이 파일에서 가장 자주 밟히는 분기다.
 
 const EMPTY_TEXT = '아직 기록이 없습니다';
+/**
+ * 잔디와 추이는 최근 구간만 본다. 그 구간이 비었다고 "아직 기록이 없습니다" 라고 적으면
+ * 두 해를 쌓고 석 달 쉰 사람에게 거짓말이 된다 — 카드 머리의 범위와 짝이 되는 문구를 쓴다.
+ */
+const WINDOW_EMPTY_TEXT = '이 기간에 기록이 없습니다';
 const FAILED_TEXT = '통계를 불러오지 못했습니다';
 
 const MINUTES_PER_HOUR = 60;
@@ -17,11 +22,20 @@ const TOP_SLICES = 8;
 const HEATMAP_STEPS = [1, 60, 120, 240];
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 잔디는 CSS Grid 라 CDN 이 막힌 브라우저에서도 그려진다 — 나머지보다 먼저 세운다
+    card('heatmap', '/api/stats/heatmap', drawHeatmap, WINDOW_EMPTY_TEXT);
+
+    // 여기서 멈추지 않으면 바로 아래 Chart.defaults 가 예외로 튀어 나머지 세 카드가 문구도 없이
+    // 빈 칸으로 남는다. 이 파일이 막으려던 "고장과 구별되지 않는 화면" 이 그것이다
+    if (typeof Chart === 'undefined') {
+        ['trend', 'categories', 'hours'].forEach(name => note(boxOf(name), FAILED_TEXT));
+        return;
+    }
+
     Chart.defaults.color = cssVar('--muted');
     Chart.defaults.borderColor = cssVar('--line');
     Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
 
-    card('heatmap', '/api/stats/heatmap', drawHeatmap);
     card('categories', '/api/stats/categories', drawCategories);
     card('hours', '/api/stats/hours', drawHours);
     setUpTrend();
@@ -31,16 +45,25 @@ document.addEventListener('DOMContentLoaded', () => {
  * 카드 하나의 수명 전체. 그리는 함수가 false 를 돌려주면 그릴 것이 없었다는 뜻이라
  * 빈 상태 문구로 바꾼다 — 판정을 각 함수에 맡기는 것은 "비어 있음" 의 모양이 넷 다 다르기 때문.
  */
-async function card(name, url, render) {
-    const box = document.querySelector(`[data-chart="${name}"]`);
+async function card(name, url, render, emptyText = EMPTY_TEXT) {
+    const box = boxOf(name);
     try {
         if (!render(box, await fetchJson(url))) {
-            note(box, EMPTY_TEXT);
+            note(box, emptyText);
         }
     } catch (error) {
         console.error(error);
         note(box, FAILED_TEXT);
     }
+}
+
+function boxOf(name) {
+    return document.querySelector(`[data-chart="${name}"]`);
+}
+
+/** 카드가 어느 구간을 그렸는지. 넷의 범위가 서로 달라 적지 않으면 같은 창으로 읽힌다 */
+function showRange(name, text) {
+    document.querySelector(`[data-range="${name}"]`).textContent = text;
 }
 
 async function fetchJson(url) {
@@ -75,6 +98,9 @@ function canvasIn(box) {
  * 다시 세면 방문자 시간대에 따라 잔디가 통째로 한 칸 밀린다.
  */
 function drawHeatmap(box, response) {
+    // 범위는 비어 있어도 적는다 — "이 기간에 기록이 없습니다" 가 어느 기간인지 여기서 나온다
+    showRange('heatmap', `${response.from} ~ ${response.to}`);
+
     const minutesByDate = new Map(response.days.map(day => [day.date, day.totalMinutes]));
     if (minutesByDate.size === 0) {
         return false;
@@ -86,13 +112,16 @@ function drawHeatmap(box, response) {
     const months = element('div', 'heatmap-months');
 
     let column = 1;
+    let labelled = null;
     // 첫 칸은 from 이 속한 주의 월요일 — 주 중간에서 시작하면 열이 요일과 어긋난다
     for (const day = mondayOf(from); day <= to; day.setDate(day.getDate() + 1)) {
         grid.append(dayCell(day, from, minutesByDate));
 
         if (day.getDay() === 1) {
-            // 그 달의 첫 월요일이 선 열에만 이름을 붙인다. 달마다 한 번씩만 걸린다
-            if (day.getDate() <= DAYS_PER_WEEK) {
+            // 달이 바뀐 열에 이름을 붙인다. "그 달 첫 월요일" 로 고르면 첫 열의 월요일이
+            // 8일 이후일 때 맨 앞 몇 주가 이름 없이 남아 다음 달로 읽힌다
+            if (day.getMonth() !== labelled) {
+                labelled = day.getMonth();
                 months.append(monthLabel(day, column));
             }
             column += 1;
@@ -162,27 +191,43 @@ function legend() {
  * 한 번 받은 것을 접어서 만들 수 없다.
  */
 function setUpTrend() {
-    const box = document.querySelector('[data-chart="trend"]');
+    const box = boxOf('trend');
     const buttons = [...document.querySelectorAll('[data-trend-unit]')];
     let chart = null;
+    let latest = 0;
+
+    // 다시 그리기 전에 반드시 버린다 — 남겨 두면 옛 차트가 떨어져 나간 캔버스에 계속 매달린다
+    const discard = () => {
+        if (chart) {
+            chart.destroy();
+            chart = null;
+        }
+    };
 
     const load = async (unit) => {
+        // 주·월을 빠르게 눌렀을 때 늦게 온 응답이 뒤엣것을 덮지 않게 한다 — 누른 버튼은 월인데
+        // 그려진 눈금은 주가 되는 어긋남이 여기서 난다
+        const request = ++latest;
         buttons.forEach(button =>
                 button.setAttribute('aria-pressed', String(button.dataset.trendUnit === unit)));
         try {
             const buckets = await fetchJson(`/api/stats/trend?unit=${unit}`);
-            // 다시 그리기 전에 반드시 버린다 — 남겨 두면 옛 차트가 같은 캔버스에 계속 반응한다
-            if (chart) {
-                chart.destroy();
-                chart = null;
+            if (request !== latest) {
+                return;
             }
+            discard();
+            showRange('trend', `최근 ${buckets.length}${unit === 'week' ? '주' : '개월'}`);
             if (buckets.every(bucket => bucket.totalMinutes === 0)) {
-                note(box, EMPTY_TEXT);
+                note(box, WINDOW_EMPTY_TEXT);
                 return;
             }
             chart = drawTrend(box, buckets, unit);
         } catch (error) {
             console.error(error);
+            if (request !== latest) {
+                return;
+            }
+            discard();
             note(box, FAILED_TEXT);
         }
     };

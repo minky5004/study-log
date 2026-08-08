@@ -23,6 +23,9 @@
                 <div>
                     <h2 class="card-title">일별 기록</h2>
                     <p class="card-question">꾸준히 했는가</p>
+                    <!-- 넷의 조회 구간이 서로 다르다. 적지 않으면 분야별을 추이와 같은 창으로 읽는다.
+                         구간을 정하는 것은 서버라 값은 응답에서 받아 채운다 -->
+                    <p class="card-range" data-range="heatmap"></p>
                 </div>
             </div>
             <div class="heatmap-box" data-chart="heatmap"></div>
@@ -33,6 +36,7 @@
                 <div>
                     <h2 class="card-title">추이</h2>
                     <p class="card-question">총량이 늘고 있는가</p>
+                    <p class="card-range" data-range="trend"></p>
                 </div>
                 <div class="toggle">
                     <button type="button" class="button button-quiet button-small"
@@ -49,6 +53,8 @@
                 <div>
                     <h2 class="card-title">분야별</h2>
                     <p class="card-question">한쪽에 치우쳐 있지 않은가</p>
+                    <!-- 이 둘은 날짜 조건 없는 집계라 값이 고정이다 -->
+                    <p class="card-range">전체 기간</p>
                 </div>
             </div>
             <div class="chart-box" data-chart="categories"></div>
@@ -59,6 +65,7 @@
                 <div>
                     <h2 class="card-title">시간대</h2>
                     <p class="card-question">언제 앉는가</p>
+                    <p class="card-range">전체 기간</p>
                 </div>
             </div>
             <div class="chart-box" data-chart="hours"></div>

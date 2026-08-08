@@ -683,6 +683,15 @@ button:focus-visible {
     font-size: 0.85rem;
 }
 
+/* 그린 구간. 질문보다 한 단 흐리게 둬야 카드 머리에서 제목·질문 순서가 먼저 읽힌다 */
+.card-range {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+}
+
 /* 캔버스는 부모에 높이가 있어야 크기를 잡는다 — 없으면 매 프레임 늘어난다 */
 .chart-box {
     position: relative;
