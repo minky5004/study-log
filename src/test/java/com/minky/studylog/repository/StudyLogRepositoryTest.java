@@ -2,9 +2,13 @@ package com.minky.studylog.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.minky.studylog.domain.Category;
 import com.minky.studylog.domain.StudyLog;
+import com.minky.studylog.repository.projection.CategoryTotal;
+import com.minky.studylog.repository.projection.DailyTotal;
+import com.minky.studylog.repository.projection.StartTimeSlice;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
@@ -191,6 +195,64 @@ class StudyLogRepositoryTest {
         // name 으로 정렬하면 대문자가 앞으로 몰려 CS · Spring · algorithm 이 된다
         assertThat(categoryRepository.findAllNamesOrderedByKey())
                 .containsExactly("algorithm", "CS", "Spring");
+    }
+
+    @Test
+    @DisplayName("일별 합계는 같은 날 세션을 접어 기간 안만 · 날짜 오름차순")
+    void sumsMinutesPerDay() {
+        saveLog("아침", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 8, 3));
+        saveLog("저녁", "요약", null, "CS", List.of("jpa"), LocalDate.of(2026, 8, 3));
+        saveLog("다음 날", "요약", null, "CS", List.of("jpa"), LocalDate.of(2026, 8, 4));
+        saveLog("기간 밖", "요약", null, "CS", List.of("jpa"), LocalDate.of(2026, 8, 10));
+        flushAndClear();
+
+        assertThat(studyLogRepository.findDailyTotals(
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5)))
+                .containsExactly(
+                        new DailyTotal(LocalDate.of(2026, 8, 3), 120),
+                        new DailyTotal(LocalDate.of(2026, 8, 4), 60));
+    }
+
+    @Test
+    @DisplayName("분야별 합계는 내림차순 · 색 배정에 쓸 식별자 동반")
+    void sumsMinutesPerCategory() {
+        saveLog("하나", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 8, 3));
+        saveLog("둘", "요약", null, "CS", List.of("jpa"), LocalDate.of(2026, 8, 3));
+        saveLog("셋", "요약", null, "CS", List.of("jpa"), LocalDate.of(2026, 8, 4));
+        flushAndClear();
+
+        assertThat(studyLogRepository.findCategoryTotals())
+                .extracting(CategoryTotal::categoryName, CategoryTotal::totalMinutes)
+                .containsExactly(tuple("CS", 120L), tuple("Spring", 60L));
+        assertThat(studyLogRepository.findCategoryTotals().getFirst().categoryId()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("시간대 재료는 시작 시각과 분만 — 자정 넘김도 계산 없이 그대로")
+    void readsStartTimeSlices() {
+        Category spring = categoryRepository.save(new Category("Spring"));
+        studyLogRepository.save(new StudyLog("자정 넘김", LocalDate.of(2026, 8, 3),
+                LocalTime.of(23, 0), LocalTime.of(1, 0), spring,
+                new LinkedHashSet<>(List.of("jpa")), "요약", null));
+        flushAndClear();
+
+        assertThat(studyLogRepository.findStartTimeSlices())
+                .containsExactly(new StartTimeSlice(LocalTime.of(23, 0), 120));
+    }
+
+    @Test
+    @DisplayName("같은 시각 시작 세션은 DB 에서 합쳐져 옴 — 행 수가 기록 수만큼 올라오지 않게")
+    void foldsSlicesBySameStartTime() {
+        Category spring = categoryRepository.save(new Category("Spring"));
+        for (int i = 0; i < 3; i++) {
+            studyLogRepository.save(new StudyLog("세션 " + i, LocalDate.of(2026, 8, 3).plusDays(i),
+                    LocalTime.of(20, 0), LocalTime.of(21, 0), spring,
+                    new LinkedHashSet<>(List.of("jpa")), "요약", null));
+        }
+        flushAndClear();
+
+        assertThat(studyLogRepository.findStartTimeSlices())
+                .containsExactly(new StartTimeSlice(LocalTime.of(20, 0), 180));
     }
 
     /** 레포지토리는 감싸기·이스케이프가 끝난 패턴을 받는다 — 그 규칙 자체는 서비스가 소유. */

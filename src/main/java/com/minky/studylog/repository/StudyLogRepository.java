@@ -1,6 +1,9 @@
 package com.minky.studylog.repository;
 
 import com.minky.studylog.domain.StudyLog;
+import com.minky.studylog.repository.projection.CategoryTotal;
+import com.minky.studylog.repository.projection.DailyTotal;
+import com.minky.studylog.repository.projection.StartTimeSlice;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -80,4 +83,43 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
      */
     @Query("select t from StudyLog l join l.tags t group by t order by count(t) desc, t asc")
     List<String> findDistinctTagsByUsage();
+
+    /**
+     * 일별 합계. 히트맵과 주·월 추이가 모두 이 결과에서 파생되므로 날짜 단위까지만 DB 가 접는다 —
+     * 주·월 버킷팅을 방언(`date_trunc`)에 맡기면 H2 와 PostgreSQL 을 매번 대조해야 한다.
+     *
+     * <p>{@code durationMinutes} 는 저장 시점 계산값이라 여기서 다시 재지 않는다.
+     */
+    @Query("""
+            select new com.minky.studylog.repository.projection.DailyTotal(
+                    l.studyDate, sum(l.durationMinutes))
+            from StudyLog l
+            where l.studyDate between :from and :to
+            group by l.studyDate
+            order by l.studyDate asc
+            """)
+    List<DailyTotal> findDailyTotals(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** 분야별 합계. 색 배정이 식별자 기준이라 이름과 함께 묶는다 — 표기가 같아도 다른 분야는 없다. */
+    @Query("""
+            select new com.minky.studylog.repository.projection.CategoryTotal(
+                    c.id, c.name, sum(l.durationMinutes))
+            from StudyLog l join l.category c
+            group by c.id, c.name
+            order by sum(l.durationMinutes) desc, c.name asc
+            """)
+    List<CategoryTotal> findCategoryTotals();
+
+    /**
+     * 시간대 분포의 재료. 시(hour) 추출은 방언마다 달라 자바에 두지만, 시각 단위 합계까지는
+     * 표준 {@code group by} 로 접는다 — 접지 않으면 기록 수만큼의 행이 매 요청 앱으로 올라오고
+     * 그 수는 매일 쓰는 도구에서 단조 증가한다. 접은 뒤 행 수는 실제로 쓰인 시각 수만큼이다.
+     */
+    @Query("""
+            select new com.minky.studylog.repository.projection.StartTimeSlice(
+                    l.startTime, sum(l.durationMinutes))
+            from StudyLog l
+            group by l.startTime
+            """)
+    List<StartTimeSlice> findStartTimeSlices();
 }

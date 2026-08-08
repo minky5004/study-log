@@ -61,6 +61,13 @@ class SecurityAccessTest {
     }
 
     @Test
+    @DisplayName("통계 JSON 은 비로그인도 허용 — 노출 데이터가 목록·상세와 같다")
+    void statsApiIsPublic() throws Exception {
+        mockMvc.perform(get("/api/stats/hours")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/stats/categories")).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("정적 자원은 비로그인도 허용 — 막으면 로그인 화면부터 스타일이 깨진다")
     void staticResourcesArePublic() throws Exception {
         mockMvc.perform(get("/css/app.css")).andExpect(status().isOk());
