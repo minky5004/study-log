@@ -110,11 +110,16 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
             """)
     List<CategoryTotal> findCategoryTotals();
 
-    /** 시간대 분포의 재료. 귀속 규칙이 자바에 있으므로 시작 시각과 분만 꺼내 온다. */
+    /**
+     * 시간대 분포의 재료. 시(hour) 추출은 방언마다 달라 자바에 두지만, 시각 단위 합계까지는
+     * 표준 {@code group by} 로 접는다 — 접지 않으면 기록 수만큼의 행이 매 요청 앱으로 올라오고
+     * 그 수는 매일 쓰는 도구에서 단조 증가한다. 접은 뒤 행 수는 실제로 쓰인 시각 수만큼이다.
+     */
     @Query("""
             select new com.minky.studylog.repository.projection.StartTimeSlice(
-                    l.startTime, l.durationMinutes)
+                    l.startTime, sum(l.durationMinutes))
             from StudyLog l
+            group by l.startTime
             """)
     List<StartTimeSlice> findStartTimeSlices();
 }

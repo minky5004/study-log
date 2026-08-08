@@ -42,14 +42,20 @@ public class StatsService {
         return studyLogRepository.findDailyTotals(from, to);
     }
 
+    /**
+     * 조회 범위를 첫 버킷 시작으로 넓혀서 읽는다. 라벨만 접고 범위를 그대로 두면 첫 막대가
+     * 부분 주가 된다 — 시작일이 화요일이면 그 주 월요일 기록이 합계에서 조용히 빠진다.
+     */
     @Transactional(readOnly = true)
     public List<BucketTotal> weekly(LocalDate from, LocalDate to) {
-        return toWeekly(studyLogRepository.findDailyTotals(from, to), from, to);
+        LocalDate start = weekStart(from);
+        return toWeekly(studyLogRepository.findDailyTotals(start, to), start, to);
     }
 
     @Transactional(readOnly = true)
     public List<BucketTotal> monthly(LocalDate from, LocalDate to) {
-        return toMonthly(studyLogRepository.findDailyTotals(from, to), from, to);
+        LocalDate start = monthStart(from);
+        return toMonthly(studyLogRepository.findDailyTotals(start, to), start, to);
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +64,7 @@ public class StatsService {
     }
 
     @Transactional(readOnly = true)
-    public int[] byHourOfDay() {
+    public long[] byHourOfDay() {
         return toHourly(studyLogRepository.findStartTimeSlices());
     }
 
@@ -69,7 +75,7 @@ public class StatsService {
     }
 
     static List<BucketTotal> toMonthly(List<DailyTotal> daily, LocalDate from, LocalDate to) {
-        return bucketize(daily, from, to, date -> date.withDayOfMonth(1),
+        return bucketize(daily, from, to, StatsService::monthStart,
                 date -> date.format(MONTH_BUCKET), date -> date.plusMonths(1));
     }
 
@@ -78,10 +84,10 @@ public class StatsService {
      * 것은 이 차트의 질문이 "언제 앉는가" 이기 때문 — 쪼개면 23시에 시작해 1시에 끝낸 사람의
      * 습관이 0시대에 절반 옮겨 간다.
      */
-    static int[] toHourly(List<StartTimeSlice> slices) {
-        int[] minutesByHour = new int[HOURS_PER_DAY];
+    static long[] toHourly(List<StartTimeSlice> slices) {
+        long[] minutesByHour = new long[HOURS_PER_DAY];
         for (StartTimeSlice slice : slices) {
-            minutesByHour[slice.startTime().getHour()] += slice.durationMinutes();
+            minutesByHour[slice.startTime().getHour()] += slice.totalMinutes();
         }
         return minutesByHour;
     }
@@ -112,5 +118,9 @@ public class StatsService {
 
     private static LocalDate weekStart(LocalDate date) {
         return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    }
+
+    private static LocalDate monthStart(LocalDate date) {
+        return date.withDayOfMonth(1);
     }
 }

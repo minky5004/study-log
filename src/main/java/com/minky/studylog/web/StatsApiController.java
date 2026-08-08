@@ -9,12 +9,11 @@ import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 차트가 읽는 JSON. 화면(Task 13)과 나누는 것은 집계 결과를 브라우저 없이 검증할 수 있게 하기
@@ -46,7 +45,7 @@ public class StatsApiController {
         LocalDate end = to != null ? to : today();
         LocalDate start = from != null ? from : end.minusDays(HEATMAP_DAYS - 1L);
         if (start.isAfter(end)) {
-            throw new IllegalArgumentException("from 이 to 보다 뒤입니다");
+            throw badRequest("from 이 to 보다 뒤입니다");
         }
         return statsService.heatmap(start, end);
     }
@@ -61,7 +60,7 @@ public class StatsApiController {
         return switch (unit) {
             case "week" -> statsService.weekly(today.minusWeeks(TREND_BUCKETS - 1L), today);
             case "month" -> statsService.monthly(today.minusMonths(TREND_BUCKETS - 1L), today);
-            default -> throw new IllegalArgumentException("unit 은 week 또는 month");
+            default -> throw badRequest("unit 은 week 또는 month");
         };
     }
 
@@ -71,17 +70,20 @@ public class StatsApiController {
     }
 
     @GetMapping("/hours")
-    public int[] hours() {
+    public long[] hours() {
         return statsService.byHourOfDay();
     }
 
     /**
      * 주소창에서 온 잘못된 값이라 400 이다. 기본 처리에 맡기면 500 이 나가 서버 고장과
      * 구별되지 않는다.
+     *
+     * <p>{@code IllegalArgumentException} 을 통째로 잡는 핸들러를 두지 않는다 — 서비스나
+     * 하이버네이트에서 올라오는 같은 타입까지 400 으로 가려 서버 결함이 주소창 조작과
+     * 구별되지 않고 스택트레이스도 남지 않는다.
      */
-    @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public void badRequest() {
+    private static ResponseStatusException badRequest(String reason) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, reason);
     }
 
     /** 배포 호스트가 UTC 라 기본값을 박지 않으면 자정 직후의 "오늘" 이 하루 어긋난다. */

@@ -240,6 +240,21 @@ class StudyLogRepositoryTest {
                 .containsExactly(new StartTimeSlice(LocalTime.of(23, 0), 120));
     }
 
+    @Test
+    @DisplayName("같은 시각 시작 세션은 DB 에서 합쳐져 옴 — 행 수가 기록 수만큼 올라오지 않게")
+    void foldsSlicesBySameStartTime() {
+        Category spring = categoryRepository.save(new Category("Spring"));
+        for (int i = 0; i < 3; i++) {
+            studyLogRepository.save(new StudyLog("세션 " + i, LocalDate.of(2026, 8, 3).plusDays(i),
+                    LocalTime.of(20, 0), LocalTime.of(21, 0), spring,
+                    new LinkedHashSet<>(List.of("jpa")), "요약", null));
+        }
+        flushAndClear();
+
+        assertThat(studyLogRepository.findStartTimeSlices())
+                .containsExactly(new StartTimeSlice(LocalTime.of(20, 0), 180));
+    }
+
     /** 레포지토리는 감싸기·이스케이프가 끝난 패턴을 받는다 — 그 규칙 자체는 서비스가 소유. */
     private Page<StudyLog> search(String keyword) {
         return studyLogRepository.search("%" + keyword + "%", null, null, null, null, PAGE);

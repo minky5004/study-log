@@ -41,15 +41,18 @@ class StatsApiControllerTest {
     @Test
     @DisplayName("히트맵 기본 범위는 오늘 포함 365일 · 한국 기준")
     void heatmapDefaultsToLastYear() throws Exception {
+        // 요청 앞뒤로 오늘을 한 번씩 잡는다 — 한국 기준 자정이 중간에 끼면 한쪽과는 어긋나므로
+        // 고정값과 비교하면 그날 그 순간에만 깨지는 테스트가 된다
+        LocalDate before = LocalDate.now(StudyLogForm.ZONE);
         mockMvc.perform(get("/api/stats/heatmap")).andExpect(status().isOk());
+        LocalDate after = LocalDate.now(StudyLogForm.ZONE);
 
         ArgumentCaptor<LocalDate> from = ArgumentCaptor.forClass(LocalDate.class);
         ArgumentCaptor<LocalDate> to = ArgumentCaptor.forClass(LocalDate.class);
         Mockito.verify(statsService).heatmap(from.capture(), to.capture());
 
-        LocalDate today = LocalDate.now(StudyLogForm.ZONE);
-        assertThat(to.getValue()).isEqualTo(today);
-        assertThat(from.getValue()).isEqualTo(today.minusDays(364));
+        assertThat(to.getValue()).isBetween(before, after);
+        assertThat(from.getValue()).isEqualTo(to.getValue().minusDays(364));
     }
 
     @Test
@@ -78,23 +81,33 @@ class StatsApiControllerTest {
         Mockito.when(statsService.weekly(Mockito.any(), Mockito.any()))
                 .thenReturn(List.of(new BucketTotal("2026-08-03", 90)));
 
+        LocalDate before = LocalDate.now(StudyLogForm.ZONE);
         mockMvc.perform(get("/api/stats/trend"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].bucket").value("2026-08-03"))
                 .andExpect(jsonPath("$[0].totalMinutes").value(90));
+        LocalDate after = LocalDate.now(StudyLogForm.ZONE);
 
-        LocalDate today = LocalDate.now(StudyLogForm.ZONE);
-        Mockito.verify(statsService).weekly(today.minusWeeks(11), today);
+        ArgumentCaptor<LocalDate> from = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> to = ArgumentCaptor.forClass(LocalDate.class);
+        Mockito.verify(statsService).weekly(from.capture(), to.capture());
+        assertThat(to.getValue()).isBetween(before, after);
+        assertThat(from.getValue()).isEqualTo(to.getValue().minusWeeks(11));
     }
 
     @Test
     @DisplayName("unit=month 는 월간 집계로 갈림")
     void trendSwitchesToMonthly() throws Exception {
+        LocalDate before = LocalDate.now(StudyLogForm.ZONE);
         mockMvc.perform(get("/api/stats/trend").param("unit", "month"))
                 .andExpect(status().isOk());
+        LocalDate after = LocalDate.now(StudyLogForm.ZONE);
 
-        LocalDate today = LocalDate.now(StudyLogForm.ZONE);
-        Mockito.verify(statsService).monthly(today.minusMonths(11), today);
+        ArgumentCaptor<LocalDate> from = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> to = ArgumentCaptor.forClass(LocalDate.class);
+        Mockito.verify(statsService).monthly(from.capture(), to.capture());
+        assertThat(to.getValue()).isBetween(before, after);
+        assertThat(from.getValue()).isEqualTo(to.getValue().minusMonths(11));
         Mockito.verify(statsService, Mockito.never()).weekly(Mockito.any(), Mockito.any());
     }
 
@@ -119,7 +132,7 @@ class StatsApiControllerTest {
     @Test
     @DisplayName("시간대는 빈 데이터에도 24칸 — 화면이 칸을 다시 세지 않게")
     void hoursAlwaysHave24Slots() throws Exception {
-        Mockito.when(statsService.byHourOfDay()).thenReturn(new int[24]);
+        Mockito.when(statsService.byHourOfDay()).thenReturn(new long[24]);
 
         mockMvc.perform(get("/api/stats/hours"))
                 .andExpect(status().isOk())

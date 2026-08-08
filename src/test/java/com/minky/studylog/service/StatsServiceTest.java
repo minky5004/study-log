@@ -2,6 +2,7 @@ package com.minky.studylog.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.minky.studylog.repository.StudyLogRepository;
 import com.minky.studylog.repository.projection.DailyTotal;
 import com.minky.studylog.repository.projection.StartTimeSlice;
 import java.time.LocalDate;
@@ -9,6 +10,7 @@ import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 /**
  * 버킷팅을 static 순수 함수로 두는 이유가 이 파일이다 — DB 없이 경계값을 직접 먹인다.
@@ -65,7 +67,7 @@ class StatsServiceTest {
     @Test
     @DisplayName("시간대 분포는 시작 시각 시(hour)에 전체 분을 귀속 — 자정 넘김도 쪼개지 않음")
     void hourBucketUsesStartHour() {
-        int[] hours = StatsService.toHourly(List.of(slice("23:30", 120)));
+        long[] hours = StatsService.toHourly(List.of(slice("23:30", 120)));
 
         assertThat(hours[23]).isEqualTo(120);
         assertThat(hours[0]).isZero();
@@ -74,7 +76,7 @@ class StatsServiceTest {
     @Test
     @DisplayName("같은 시간대 세션은 합산")
     void sumsSlicesInSameHour() {
-        int[] hours = StatsService.toHourly(List.of(slice("14:00", 50), slice("14:59", 30)));
+        long[] hours = StatsService.toHourly(List.of(slice("14:00", 50), slice("14:59", 30)));
 
         assertThat(hours[14]).isEqualTo(80);
     }
@@ -85,11 +87,37 @@ class StatsServiceTest {
         assertThat(StatsService.toHourly(List.of())).hasSize(24).containsOnly(0);
     }
 
+    /**
+     * 라벨만 버킷 시작으로 접고 조회 범위를 그대로 두면 첫 막대가 부분 주가 된다 —
+     * 컨트롤러가 넘기는 시작일은 오늘과 같은 요일이라 이레 중 엿새는 이 경로를 밟는다.
+     */
+    @Test
+    @DisplayName("주간 추이는 첫 버킷 시작일부터 조회")
+    void weeklyQueriesFromBucketStart() {
+        StudyLogRepository repository = Mockito.mock(StudyLogRepository.class);
+        Mockito.when(repository.findDailyTotals(Mockito.any(), Mockito.any())).thenReturn(List.of());
+
+        new StatsService(repository).weekly(date("2026-05-23"), date("2026-08-08"));
+
+        Mockito.verify(repository).findDailyTotals(date("2026-05-18"), date("2026-08-08"));
+    }
+
+    @Test
+    @DisplayName("월간 추이는 그 달 1일부터 조회")
+    void monthlyQueriesFromFirstDayOfMonth() {
+        StudyLogRepository repository = Mockito.mock(StudyLogRepository.class);
+        Mockito.when(repository.findDailyTotals(Mockito.any(), Mockito.any())).thenReturn(List.of());
+
+        new StatsService(repository).monthly(date("2025-09-08"), date("2026-08-08"));
+
+        Mockito.verify(repository).findDailyTotals(date("2025-09-01"), date("2026-08-08"));
+    }
+
     private static DailyTotal daily(String date, long minutes) {
         return new DailyTotal(date(date), minutes);
     }
 
-    private static StartTimeSlice slice(String startTime, int minutes) {
+    private static StartTimeSlice slice(String startTime, long minutes) {
         return new StartTimeSlice(LocalTime.parse(startTime), minutes);
     }
 
