@@ -52,16 +52,20 @@ class CategoryPaletteTest {
         assertThat(CategoryPalette.indexOf(null)).isZero();
     }
 
+    /**
+     * 규칙과 토큰을 함께 센다. 규칙만 세면 {@code .cat-6} 을 토큰 없이 늘린 날 그 규칙이
+     * 정의되지 않은 {@code var(--cat-6)} 을 가리켜, 색 없는 점이 테스트를 통과한 채로 나간다.
+     */
     @Test
-    @DisplayName("팔레트 크기와 스타일시트의 색 규칙 개수 일치 — 한쪽만 늘리면 색 없는 점이 조용히 나간다")
+    @DisplayName("팔레트 크기와 스타일시트의 색 규칙 · 토큰 개수 일치 — 한쪽만 늘리면 색 없는 점이 조용히 나간다")
     void matchesStylesheetRules() throws Exception {
         String css;
         try (InputStream in = CategoryPalette.class.getResourceAsStream("/static/css/app.css")) {
             css = new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
 
-        assertThat(IntStream.range(0, CategoryPalette.SIZE).mapToObj(i -> ".cat-" + i).toList())
-                .allSatisfy(selector -> assertThat(css).contains(selector));
-        assertThat(css).doesNotContain(".cat-" + CategoryPalette.SIZE);
+        assertThat(IntStream.range(0, CategoryPalette.SIZE).boxed().toList())
+                .allSatisfy(index -> assertThat(css).contains(".cat-" + index, "--cat-" + index + ":"));
+        assertThat(css).doesNotContain(".cat-" + CategoryPalette.SIZE, "--cat-" + CategoryPalette.SIZE);
     }
 }

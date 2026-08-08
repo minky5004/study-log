@@ -11,17 +11,28 @@
     --accent: #00e054;
     --danger: #ff6b5b;
 
+    /*
+     * 분야 색 6종. 규칙이 아니라 :root 에 두는 것은 차트 스크립트가 getComputedStyle 로 같은
+     * 값을 읽기 때문 — 규칙 안에만 있으면 스크립트가 hex 를 한 벌 더 갖게 된다.
+     */
+    --cat-0: #00e054;
+    --cat-1: #40bcf4;
+    --cat-2: #ff8000;
+    --cat-3: #e0508a;
+    --cat-4: #b48ce6;
+    --cat-5: #f0c040;
+
     /* 브라우저 기본 위젯(날짜·시각 선택기, 스크롤바)까지 어두운 쪽을 쓰게 한다 */
     color-scheme: dark;
 }
 
-/* 분야 색. 배정은 서버가 하고 여기서는 인덱스를 색으로만 받는다 */
-.cat-0 { --cat: #00e054; }
-.cat-1 { --cat: #40bcf4; }
-.cat-2 { --cat: #ff8000; }
-.cat-3 { --cat: #e0508a; }
-.cat-4 { --cat: #b48ce6; }
-.cat-5 { --cat: #f0c040; }
+/* 배정은 서버가 하고 여기서는 인덱스를 색으로만 받는다 */
+.cat-0 { --cat: var(--cat-0); }
+.cat-1 { --cat: var(--cat-1); }
+.cat-2 { --cat: var(--cat-2); }
+.cat-3 { --cat: var(--cat-3); }
+.cat-4 { --cat: var(--cat-4); }
+.cat-5 { --cat: var(--cat-5); }
 
 * {
     box-sizing: border-box;
@@ -91,6 +102,11 @@ a {
 
 .container-narrow {
     max-width: 42rem;
+}
+
+/* 잔디 53주와 시간대 24칸이 기본 폭에서는 서로 붙는다 */
+.container-wide {
+    max-width: 72rem;
 }
 
 h1 {
@@ -626,10 +642,185 @@ button:focus-visible {
     gap: 0.5rem;
 }
 
+/* ── 통계 카드 ──────────────────────────────────── */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+/* 잔디는 53주가 가로로 서고 시간대는 24칸이라 반 폭에서 칸이 뭉갠다 */
+.card-wide {
+    grid-column: 1 / -1;
+}
+
+.card {
+    padding: 1.1rem 1.25rem 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+}
+
+.card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+}
+
+.card-title {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+}
+
+/* 그 차트가 답하는 질문. 제목만 두면 무엇을 보라는 그림인지 읽는 사람이 정해야 한다 */
+.card-question {
+    margin: 0.15rem 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+/* 그린 구간. 질문보다 한 단 흐리게 둬야 카드 머리에서 제목·질문 순서가 먼저 읽힌다 */
+.card-range {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+}
+
+/* 캔버스는 부모에 높이가 있어야 크기를 잡는다 — 없으면 매 프레임 늘어난다 */
+.chart-box {
+    position: relative;
+    height: 15rem;
+}
+
+/* 빈 상태·실패 문구가 앉는 자리. 빈 캔버스는 고장과 구별되지 않는다 */
+.card-note {
+    margin: 0;
+    padding: 3rem 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.toggle {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.button-small {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.82rem;
+}
+
+/* 고른 쪽만 글자색으로 세운다 — 분야 색을 쓰면 분야를 고른 것처럼 읽힌다 */
+.toggle .button[aria-pressed="true"] {
+    border-color: var(--fg);
+    color: var(--fg);
+}
+
+/* ── 잔디 히트맵 ────────────────────────────────── */
+
+.heatmap-box {
+    --cell: 11px;
+    --cell-gap: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.heatmap-row {
+    display: flex;
+    gap: 0.4rem;
+    /* 좁은 화면에서 53주가 페이지를 늘리지 않게 격자 안에서만 민다 */
+    overflow-x: auto;
+    padding-bottom: 0.3rem;
+}
+
+.heatmap-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.heatmap-weekdays {
+    display: grid;
+    grid-template-rows: repeat(7, var(--cell));
+    gap: var(--cell-gap);
+    /* 월 이름 줄만큼 내려와야 첫 칸과 높이가 맞는다 */
+    margin-top: calc(0.9rem + 0.25rem);
+    color: var(--muted);
+    font-size: 0.7rem;
+    line-height: var(--cell);
+}
+
+.heatmap-months {
+    display: grid;
+    grid-template-columns: repeat(var(--columns), var(--cell));
+    gap: var(--cell-gap);
+    height: 0.9rem;
+    color: var(--muted);
+    font-size: 0.7rem;
+    line-height: 0.9rem;
+}
+
+/* 칸 하나보다 이름이 넓다 — 잘리지 않게 옆으로 흘려보낸다 */
+.heatmap-month {
+    white-space: nowrap;
+}
+
+.heatmap-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, var(--cell));
+    grid-auto-columns: var(--cell);
+    gap: var(--cell-gap);
+}
+
+/* 진하기 한 축만 쓴다 — 그날 최다 분야 색으로 칠하면 색과 진하기가 두 가지를 동시에 말한다 */
+.hm-cell {
+    width: var(--cell);
+    height: var(--cell);
+    border-radius: 2px;
+    background: var(--line);
+}
+
+/* 첫 주에서 조회 시작일 이전 자리. 지우면 뒤 칸이 당겨져 요일 줄이 어긋난다 */
+.hm-blank {
+    background: none;
+}
+
+.hm-1 { background: color-mix(in srgb, var(--accent) 30%, var(--panel)); }
+.hm-2 { background: color-mix(in srgb, var(--accent) 50%, var(--panel)); }
+.hm-3 { background: color-mix(in srgb, var(--accent) 75%, var(--panel)); }
+.hm-4 { background: var(--accent); }
+
+a.hm-cell:hover {
+    outline: 1px solid var(--fg);
+}
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
 @media (max-width: 40rem) {
     /* 좁은 화면에서 버튼이 마지막 입력칸 옆에 끼면 눌리는 폭이 무너진다 */
     .search-actions {
         flex-basis: 100%;
+    }
+
+    /* 반 폭 카드 둘은 여기서 세로로 선다 — 도넛 범례가 조각보다 넓어지는 폭 */
+    .stats-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .field-row {

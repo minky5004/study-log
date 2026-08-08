@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>통계 · study-log</title>
+</head>
+<body>
+<main class="container container-wide">
+    <div class="page-head">
+        <div>
+            <h1>통계</h1>
+            <p class="lead">쌓인 기록에 묻는 네 가지</p>
+        </div>
+    </div>
+
+    <!--
+      카드 안은 비워 둔다. 숫자와 함께 오는 것이 색·범위 같은 서버의 판단이라 스크립트가
+      /api/stats/* 를 받아 그린다 — 화면이 제 범위를 정하면 같은 "최근 1년" 이 둘로 갈린다.
+    -->
+    <div class="stats-grid">
+        <section class="card card-wide">
+            <div class="card-head">
+                <div>
+                    <h2 class="card-title">일별 기록</h2>
+                    <p class="card-question">꾸준히 했는가</p>
+                    <!-- 넷의 조회 구간이 서로 다르다. 적지 않으면 분야별을 추이와 같은 창으로 읽는다.
+                         구간을 정하는 것은 서버라 값은 응답에서 받아 채운다 -->
+                    <p class="card-range" data-range="heatmap"></p>
+                </div>
+            </div>
+            <div class="heatmap-box" data-chart="heatmap"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <div>
+                    <h2 class="card-title">추이</h2>
+                    <p class="card-question">총량이 늘고 있는가</p>
+                    <p class="card-range" data-range="trend"></p>
+                </div>
+                <div class="toggle">
+                    <button type="button" class="button button-quiet button-small"
+                            data-trend-unit="week" aria-pressed="true">주</button>
+                    <button type="button" class="button button-quiet button-small"
+                            data-trend-unit="month" aria-pressed="false">월</button>
+                </div>
+            </div>
+            <div class="chart-box" data-chart="trend"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <div>
+                    <h2 class="card-title">분야별</h2>
+                    <p class="card-question">한쪽에 치우쳐 있지 않은가</p>
+                    <!-- 이 둘은 날짜 조건 없는 집계라 값이 고정이다 -->
+                    <p class="card-range">전체 기간</p>
+                </div>
+            </div>
+            <div class="chart-box" data-chart="categories"></div>
+        </section>
+
+        <section class="card card-wide">
+            <div class="card-head">
+                <div>
+                    <h2 class="card-title">시간대</h2>
+                    <p class="card-question">언제 앉는가</p>
+                    <p class="card-range">전체 기간</p>
+                </div>
+            </div>
+            <div class="chart-box" data-chart="hours"></div>
+        </section>
+    </div>
+
+    <!-- 해시가 어긋나면 브라우저가 스크립트를 통째로 버린다. jsdelivr 가 등록한 sha256 과
+         내려받은 파일을 대조한 뒤 sha384 로 뽑은 값 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+            integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+            crossorigin="anonymous" defer></script>
+    <script th:src="@{/js/stats.js}" defer></script>
+</main>
+</body>
+</html>

@@ -1,9 +1,9 @@
 package com.minky.studylog.web;
 
-import com.minky.studylog.repository.projection.CategoryTotal;
-import com.minky.studylog.repository.projection.DailyTotal;
 import com.minky.studylog.service.BucketTotal;
 import com.minky.studylog.service.StatsService;
+import com.minky.studylog.web.dto.CategoryPoint;
+import com.minky.studylog.web.dto.HeatmapResponse;
 import com.minky.studylog.web.dto.StudyLogForm;
 import java.time.LocalDate;
 import java.util.List;
@@ -38,7 +38,7 @@ public class StatsApiController {
     }
 
     @GetMapping("/heatmap")
-    public List<DailyTotal> heatmap(
+    public HeatmapResponse heatmap(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
@@ -47,7 +47,8 @@ public class StatsApiController {
         if (start.isAfter(end)) {
             throw badRequest("from 이 to 보다 뒤입니다");
         }
-        return statsService.heatmap(start, end);
+        // 조회한 범위를 함께 돌려준다 — 기록 없는 날은 행이 없어 응답만으로는 격자 크기를 알 수 없다
+        return new HeatmapResponse(start, end, statsService.heatmap(start, end));
     }
 
     /**
@@ -64,9 +65,10 @@ public class StatsApiController {
         };
     }
 
+    /** 색 배정을 여기서 끝낸다 — 식별자만 내보내면 배정 규칙이 스크립트에 한 벌 더 생긴다. */
     @GetMapping("/categories")
-    public List<CategoryTotal> categories() {
-        return statsService.byCategory();
+    public List<CategoryPoint> categories() {
+        return statsService.byCategory().stream().map(CategoryPoint::from).toList();
     }
 
     @GetMapping("/hours")
