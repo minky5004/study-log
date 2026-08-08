@@ -37,7 +37,14 @@ PostgreSQL(운영) / H2(로컬) · commonmark-java + jsoup · Chart.js
 ## 로컬 실행
 
 ```bash
+export APP_ADMIN_USERNAME=admin
+export APP_ADMIN_PASSWORD_HASH='$2a$10$...'   # BCrypt 해시
 ./gradlew bootRun
 ```
 
 Java 21 이 필요하다. Gradle 은 래퍼를 쓰므로 따로 설치하지 않아도 된다.
+
+관리자 계정은 환경변수로만 받는다. 기본 계정을 코드에 두면 그것이 곧 리포에 공개된 자격증명이
+되므로, 두 변수가 없으면 부팅이 실패한다. 비밀번호는 평문이 아니라 BCrypt 해시(`$2` 로 시작)를
+넣는다 — 평문을 넣으면 앱은 정상 기동하고 로그인만 계속 실패하므로, 미설정과 마찬가지로 부팅
+단계에서 거부한다. 조회 화면은 로그인 없이 열리고 기록 작성·수정·삭제만 로그인을 요구한다.

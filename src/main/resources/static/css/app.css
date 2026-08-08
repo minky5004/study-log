@@ -65,6 +65,24 @@ a {
     color: var(--accent);
 }
 
+/* 로그아웃은 POST 라 폼이지만 줄 안에서는 다른 메뉴와 같은 글자로 보여야 한다 */
+.topbar nav form {
+    display: inline;
+}
+
+.link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.link-button:hover {
+    color: var(--accent);
+}
+
 .container {
     max-width: 60rem;
     margin: 0 auto;
