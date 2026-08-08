@@ -118,15 +118,20 @@ class StatsApiControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    /**
+     * 색 배정 규칙이 서버 한 곳에만 있어야 목록(Thymeleaf)과 차트(Chart.js)의 분야 색이 같다.
+     * 식별자를 그대로 내보내면 그 규칙이 스크립트에 한 벌 더 생긴다.
+     */
     @Test
-    @DisplayName("분야별 합계는 이름과 색 배정용 식별자를 함께 실음")
-    void categoriesCarryIdAndName() throws Exception {
+    @DisplayName("분야별 합계는 식별자 대신 배정된 색 인덱스를 실음")
+    void categoriesCarryAssignedColorIndex() throws Exception {
         Mockito.when(statsService.byCategory()).thenReturn(List.of(new CategoryTotal(2L, "CS", 120)));
 
         mockMvc.perform(get("/api/stats/categories"))
-                .andExpect(jsonPath("$[0].categoryId").value(2))
                 .andExpect(jsonPath("$[0].categoryName").value("CS"))
-                .andExpect(jsonPath("$[0].totalMinutes").value(120));
+                .andExpect(jsonPath("$[0].totalMinutes").value(120))
+                .andExpect(jsonPath("$[0].colorIndex").value(1))
+                .andExpect(jsonPath("$[0].categoryId").doesNotExist());
     }
 
     @Test
@@ -147,6 +152,19 @@ class StatsApiControllerTest {
 
         mockMvc.perform(get("/api/stats/heatmap"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"2026-08-03\"")))
-                .andExpect(jsonPath("$[0].totalMinutes").value(120));
+                .andExpect(jsonPath("$.days[0].totalMinutes").value(120));
+    }
+
+    /**
+     * 기록이 있는 날만 행으로 오므로 응답만으로는 격자 크기를 알 수 없다. 브라우저가 "오늘"부터
+     * 다시 세면 방문자 시간대에 따라 잔디 한 칸이 어긋나고, 그 어긋남은 서버에서 재현되지 않는다.
+     */
+    @Test
+    @DisplayName("히트맵 응답은 실제로 조회한 범위를 함께 실음")
+    void heatmapCarriesTheRangeItDrew() throws Exception {
+        mockMvc.perform(get("/api/stats/heatmap")
+                        .param("from", "2026-01-01").param("to", "2026-01-31"))
+                .andExpect(jsonPath("$.from").value("2026-01-01"))
+                .andExpect(jsonPath("$.to").value("2026-01-31"));
     }
 }
