@@ -129,6 +129,13 @@ h1 {
     margin-bottom: 2rem;
 }
 
+/* 좁은 폭에서 버튼이 제목을 밀어내지 않게 줄바꿈을 허용한다 */
+.page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 /* ── 버튼 ───────────────────────────────────────── */
 
 .button {

@@ -45,6 +45,16 @@ class SecurityAccessTest {
                 .andExpect(redirectedUrl("/login"));
     }
 
+    /**
+     * 내보내기는 GET 이라 메서드 규칙에 걸리지 않는다. 경로 규칙이 빠지면 한 번의 익명 요청이
+     * DB 전량을 흘려보내는데, 그 사실은 화면 어디에도 드러나지 않는다.
+     */
+    @Test
+    @DisplayName("비로그인 백업 내려받기 차단")
+    void exportRequiresLogin() throws Exception {
+        mockMvc.perform(get("/export")).andExpect(redirectedUrl("/login"));
+    }
+
     @Test
     @DisplayName("비로그인 폼 · 수정 · 삭제 차단")
     void writeEndpointsRequireLogin() throws Exception {
