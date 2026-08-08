@@ -13,7 +13,6 @@
 
     <!-- 실패 사유를 아이디·비밀번호로 갈라 알리지 않는다 — 어느 쪽이 맞았는지 알려 주는 셈 -->
     <p class="field-error" th:if="${param.error}">아이디 또는 비밀번호가 올바르지 않습니다.</p>
-    <p class="lead" th:if="${param.logout}">로그아웃했습니다.</p>
 
     <form class="form" method="post" th:action="@{/login}">
         <label class="field">
