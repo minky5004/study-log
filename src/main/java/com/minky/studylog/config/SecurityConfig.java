@@ -44,8 +44,10 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // 쓰기 화면은 GET 이라 메서드 규칙에 걸리지 않는다 — 경로로 따로 세운다
-                        .requestMatchers("/logs/new", "/logs/*/edit", "/logs/*/delete").authenticated()
+                        // 쓰기 화면은 GET 이라 메서드 규칙에 걸리지 않는다 — 경로로 따로 세운다.
+                        // 백업 내려받기도 GET 이지만 한 요청이 DB 전량을 흘려보내 화면 단위 조회와 다르다
+                        .requestMatchers("/logs/new", "/logs/*/edit", "/logs/*/delete", "/export")
+                        .authenticated()
                         .requestMatchers(STATE_CHANGING).authenticated()
                         .anyRequest().permitAll())
                 .formLogin(form -> form.loginPage("/login").permitAll())

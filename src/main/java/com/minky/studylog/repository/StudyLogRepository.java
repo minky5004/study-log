@@ -7,6 +7,7 @@ import com.minky.studylog.repository.projection.StartTimeSlice;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -73,6 +74,17 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
                           @Param("from") LocalDate from,
                           @Param("to") LocalDate to,
                           Pageable pageable);
+
+    /**
+     * 내보내기가 전량을 훑는 통로. 오프셋 대신 마지막으로 읽은 식별자를 기준으로 다음 덩어리를
+     * 가져온다 — 오프셋은 페이지마다 count 쿼리를 부르고, 훑는 도중 기록이 하나 늘면 그 뒤가
+     * 통째로 한 칸씩 밀려 한 건이 ZIP 에서 빠진다.
+     *
+     * <p>정렬을 쿼리가 소유하므로 {@code Pageable} 이 아니라 {@code Limit} 을 받는다 —
+     * {@code Pageable} 의 {@code Sort} 는 여기 박힌 {@code order by} 와 겹친다.
+     */
+    @Query("select l from StudyLog l join fetch l.category where l.id > :afterId order by l.id asc")
+    List<StudyLog> findChunkAfterId(@Param("afterId") long afterId, Limit limit);
 
     /**
      * 입력 제안에 쓸 태그. 많이 쓴 것을 앞에 둬야 datalist 를 열자마자 보이는 몇 개가 실제로
