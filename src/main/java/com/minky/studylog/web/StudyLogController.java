@@ -2,6 +2,7 @@ package com.minky.studylog.web;
 
 import com.minky.studylog.service.StudyLogNotFoundException;
 import com.minky.studylog.service.StudyLogService;
+import com.minky.studylog.service.SuggestionService;
 import com.minky.studylog.service.TagNormalizer;
 import com.minky.studylog.web.dto.StudyLogDay;
 import com.minky.studylog.web.dto.StudyLogForm;
@@ -43,9 +44,11 @@ public class StudyLogController {
             {"title", "categoryName", "tagsCsv", "summary"};
 
     private final StudyLogService studyLogService;
+    private final SuggestionService suggestionService;
 
-    public StudyLogController(StudyLogService studyLogService) {
+    public StudyLogController(StudyLogService studyLogService, SuggestionService suggestionService) {
         this.studyLogService = studyLogService;
+        this.suggestionService = suggestionService;
     }
 
     /**
@@ -92,7 +95,23 @@ public class StudyLogController {
         model.addAttribute("days", StudyLogDay.groupByDate(logs.getContent()));
         model.addAttribute("prevPageUrl", logs.hasPrevious() ? logsUrl(cond, requested - 1) : null);
         model.addAttribute("nextPageUrl", logs.hasNext() ? logsUrl(cond, requested + 1) : null);
+        addSuggestions(model);
         return "logs/list";
+    }
+
+    /**
+     * 폼 뷰는 반드시 이 메서드로 돌려준다 — 새 기록·수정·검증 실패 복귀 셋이 같은 템플릿을 쓰는데
+     * 한 곳만 빠뜨리면 되돌아온 폼에서만 제안이 사라져 눈에 잘 띄지 않는다.
+     */
+    private String formView(Model model) {
+        addSuggestions(model);
+        return "logs/form";
+    }
+
+    /** 상세·삭제 확인은 부르지 않는다. 컨트롤러 전체에 걸면 그 화면들이 집계 쿼리 둘을 헛돈다. */
+    private void addSuggestions(Model model) {
+        model.addAttribute("categorySuggestions", suggestionService.categoryNames());
+        model.addAttribute("tagSuggestions", suggestionService.tagNames());
     }
 
     /**
@@ -130,15 +149,16 @@ public class StudyLogController {
     @GetMapping("/new")
     public String newForm(Model model) {
         model.addAttribute("form", new StudyLogForm());
-        return "logs/form";
+        return formView(model);
     }
 
     @PostMapping
-    public String create(@Valid @ModelAttribute("form") StudyLogForm form, BindingResult binding) {
+    public String create(@Valid @ModelAttribute("form") StudyLogForm form, BindingResult binding,
+                         Model model) {
         rejectInvalidInput(form, binding);
 
         if (binding.hasErrors()) {
-            return "logs/form";
+            return formView(model);
         }
         return "redirect:/logs/" + studyLogService.create(form);
     }
@@ -152,18 +172,18 @@ public class StudyLogController {
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable Long id, Model model) {
         model.addAttribute("form", studyLogService.toForm(id));
-        return "logs/form";
+        return formView(model);
     }
 
     @PostMapping("/{id}")
     public String update(@PathVariable Long id, @Valid @ModelAttribute("form") StudyLogForm form,
-                         BindingResult binding) {
+                         BindingResult binding, Model model) {
         // 폼이 되돌아올 때 제출 주소를 다시 만드는 값이라 경로에서 채운다 — 본문 바인딩은 막혀 있다
         form.setId(id);
         rejectInvalidInput(form, binding);
 
         if (binding.hasErrors()) {
-            return "logs/form";
+            return formView(model);
         }
         studyLogService.update(id, form);
         return "redirect:/logs/" + id;

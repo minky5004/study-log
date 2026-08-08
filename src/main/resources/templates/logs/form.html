@@ -51,13 +51,16 @@
             <legend class="field-label">무엇을</legend>
             <label class="field">
                 <span class="field-sublabel">분야</span>
-                <input type="text" th:field="*{categoryName}" placeholder="Spring">
+                <input type="text" th:field="*{categoryName}" list="category-options"
+                       placeholder="Spring">
                 <span class="field-error" th:if="${#fields.hasErrors('categoryName')}"
                       th:errors="*{categoryName}">오류</span>
             </label>
             <label class="field">
                 <span class="field-sublabel">태그</span>
-                <input type="text" th:field="*{tagsCsv}" placeholder="jpa, 트랜잭션">
+                <!-- 쉼표로 여러 개를 받는 칸이라 제안이 마지막 토큰에 걸리도록 스크립트가 붙는다 -->
+                <input type="text" th:field="*{tagsCsv}" list="tag-options" data-tag-suggest
+                       placeholder="jpa, 트랜잭션">
                 <span class="field-error" th:if="${#fields.hasErrors('tagsCsv')}"
                       th:errors="*{tagsCsv}">오류</span>
             </label>
@@ -80,6 +83,9 @@
                     th:text="${editing} ? '수정 저장' : '기록 저장'">기록 저장</button>
         </div>
     </form>
+
+    <th:block th:replace="~{fragments/suggest :: datalists}"></th:block>
+    <script th:src="@{/js/tag-suggest.js}" defer></script>
 </main>
 </body>
 </html>

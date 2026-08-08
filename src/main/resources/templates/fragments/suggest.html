@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  목록의 검색 칸과 기록 폼이 같은 제안 목록을 쓴다. 정의를 양쪽에 복사하면 id 나 재료가 한쪽만
+  바뀌어 조용히 빈 datalist 가 남으므로 한 자리에 둔다.
+  레이아웃이 ~{::main} 만 가져가므로 include 하는 자리는 각 화면의 main 안이어야 한다.
+-->
+<th:block th:fragment="datalists">
+    <datalist id="category-options">
+        <option th:each="name : ${categorySuggestions}" th:value="${name}"></option>
+    </datalist>
+    <datalist id="tag-options">
+        <option th:each="tag : ${tagSuggestions}" th:value="${tag}"></option>
+    </datalist>
+</th:block>
+</body>
+</html>
