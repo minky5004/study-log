@@ -1,11 +1,14 @@
 package com.minky.studylog.service.export;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.minky.studylog.service.StudyLogService;
 import com.minky.studylog.web.dto.StudyLogForm;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -74,18 +77,80 @@ class MarkdownExportServiceTest {
         assertThat(export()).isEmpty();
     }
 
-    private Map<String, String> export() throws Exception {
+    /**
+     * 도중에 끊긴 내보내기가 중앙 디렉터리까지 갖추면 압축 도구가 정상으로 연다 — 백업을
+     * 풀어 본 사람은 몇 건이 빠졌는지 알 길이 없다. 온전한 것처럼 보이는 일부보다 깨진 파일이 낫다.
+     */
+    @Test
+    @DisplayName("끊긴 내보내기는 중앙 디렉터리 없이 끝남")
+    void leavesInterruptedZipUnfinished() throws Exception {
+        seed("JPA", LocalDate.of(2026, 8, 3), LocalTime.of(9, 0), "spring", "jpa");
+        seed("큐", LocalDate.of(2026, 8, 4), LocalTime.of(14, 0), "cs", "자료구조");
+
+        CutOffStream cut = new CutOffStream(150);
+        assertThatThrownBy(() -> exportService.writeZip(cut)).isInstanceOf(IOException.class);
+
+        // 정상 경로에는 있고 끊긴 경로에는 없어야 단언이 성립한다
+        assertThat(latin1(fullExport())).contains(END_OF_CENTRAL_DIRECTORY);
+        assertThat(latin1(cut.written())).doesNotContain(END_OF_CENTRAL_DIRECTORY);
+    }
+
+    /**
+     * ZIP 맨 끝의 End of Central Directory 표지. 이것이 없으면 압축 도구가 파일 목록을
+     * 읽지 못한다. 앞 두 바이트만 보면 엔트리마다 붙는 지역 헤더에도 걸린다.
+     */
+    private static final String END_OF_CENTRAL_DIRECTORY = "PK";
+
+    private byte[] fullExport() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         exportService.writeZip(out);
+        return out.toByteArray();
+    }
 
+    /** 바이트를 그대로 문자로 옮겨 표지를 찾는다 — UTF-8 로 읽으면 압축된 바이트가 뭉개진다. */
+    private static String latin1(byte[] bytes) {
+        return new String(bytes, StandardCharsets.ISO_8859_1);
+    }
+
+    private Map<String, String> export() throws Exception {
         Map<String, String> files = new LinkedHashMap<>();
         try (ZipInputStream zip = new ZipInputStream(
-                new ByteArrayInputStream(out.toByteArray()), StandardCharsets.UTF_8)) {
+                new ByteArrayInputStream(fullExport()), StandardCharsets.UTF_8)) {
             for (ZipEntry entry; (entry = zip.getNextEntry()) != null; ) {
                 files.put(entry.getName(), new String(zip.readAllBytes(), StandardCharsets.UTF_8));
             }
         }
         return files;
+    }
+
+    /** 내려받는 쪽이 도중에 끊긴 상황. 정해진 바이트를 넘기면 더 받지 않고 던진다. */
+    private static final class CutOffStream extends OutputStream {
+
+        private final ByteArrayOutputStream received = new ByteArrayOutputStream();
+        private final int limit;
+
+        private CutOffStream(int limit) {
+            this.limit = limit;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (received.size() >= limit) {
+                throw new IOException("연결 끊김");
+            }
+            received.write(b);
+        }
+
+        @Override
+        public void write(byte[] bytes, int off, int len) throws IOException {
+            for (int i = 0; i < len; i++) {
+                write(bytes[off + i]);
+            }
+        }
+
+        private byte[] written() {
+            return received.toByteArray();
+        }
     }
 
     private void seed(String title, LocalDate date, LocalTime start, String category, String tags) {

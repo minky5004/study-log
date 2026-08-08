@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.minky.studylog.domain.Category;
 import com.minky.studylog.domain.StudyLog;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Set;
@@ -72,11 +73,44 @@ class ExportFileNameResolverTest {
         assertThat(resolve("정리...  ", "2026-08-03", "09:00")).isEqualTo("2026-08-03-정리.md");
     }
 
+    /**
+     * 글자 수가 아니라 <b>바이트</b>로 잰다. ext4·APFS 의 한계가 255바이트라, 한글 제목을 글자
+     * 수로만 자르면 이름이 세 배로 불어 압축을 풀 때 그 기록만 조용히 빠진다.
+     */
     @Test
-    @DisplayName("아주 긴 제목은 잘라냄")
+    @DisplayName("아주 긴 제목은 UTF-8 바이트 예산에 맞춰 잘라냄")
     void truncatesLongTitle() {
-        assertThat(resolve("가".repeat(300), "2026-08-03", "09:00").length())
-                .isLessThanOrEqualTo(120);
+        String name = resolve("가".repeat(300), "2026-08-03", "09:00");
+
+        assertThat(name.getBytes(StandardCharsets.UTF_8)).hasSizeLessThanOrEqualTo(200);
+        assertThat(name).startsWith("2026-08-03-가").endsWith(".md");
+    }
+
+    /** 순번이 길어지면 제목 몫이 줄어야 한다 — 접미사 자리를 상수로 떼어 두면 그 가정이 깨진다. */
+    @Test
+    @DisplayName("충돌 접미사가 붙어도 바이트 예산 유지")
+    void keepsBudgetWithCollisionSuffix() {
+        ExportFileNameResolver resolver = new ExportFileNameResolver();
+
+        for (int i = 0; i < 12; i++) {
+            assertThat(resolver.resolve(log("가".repeat(300), "2026-08-03", "23:05"))
+                    .getBytes(StandardCharsets.UTF_8)).hasSizeLessThanOrEqualTo(200);
+        }
+    }
+
+    /**
+     * 자르는 자리가 UTF-16 단위면 이모지 한 자가 짝 잃은 서러게이트로 남고, ZIP 엔트리 이름에
+     * {@code ?} 로 박힌다.
+     */
+    @Test
+    @DisplayName("잘린 자리에 짝 잃은 서러게이트를 남기지 않음")
+    void neverSplitsSurrogatePairs() {
+        String name = resolve("가".repeat(60) + "😀".repeat(20), "2026-08-03", "09:00");
+
+        // UTF-8 왕복이 이름을 바꾸면 그 자리에 짝 잃은 서러게이트가 있었다는 뜻 — 인코더가 ? 로 바꾼다
+        assertThat(new String(name.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8))
+                .isEqualTo(name);
+        assertThat(name).doesNotContain("?");
     }
 
     /**
