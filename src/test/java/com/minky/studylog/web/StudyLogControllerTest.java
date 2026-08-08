@@ -38,15 +38,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 // 슬라이스는 SecurityConfig 를 자동으로 포함하지 않아 기본 자동 구성이 401 을 낸다.
-// 필터를 끄는 대신 실제 필터체인을 가져와, 권한 분리(Task 11) 시점에 이 테스트가 함께 반응하게 한다
+// 필터를 끄는 대신 실제 필터체인을 가져온다 — 권한 분리가 들어온 지금 쓰기 경로는 로그인을 요구하므로
+// 화면 동작을 보는 이 테스트는 로그인 상태로 돈다. 비로그인 경계 자체는 SecurityAccessTest 가 맡는다
 @WebMvcTest(StudyLogController.class)
 @Import(SecurityConfig.class)
 @ActiveProfiles("test")
+@WithMockUser(roles = "ADMIN")
 class StudyLogControllerTest {
 
     @Autowired MockMvc mockMvc;

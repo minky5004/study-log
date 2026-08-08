@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layout :: page(~{::title}, ~{::main})}">
 <head>
     <title th:text="${log.title()} + ' · study-log'">기록 · study-log</title>
@@ -34,8 +35,10 @@
 
     <nav class="entry-nav">
         <a class="button button-quiet" th:href="@{/logs}">목록으로</a>
-        <a class="button button-quiet" th:href="@{/logs/{id}/edit(id=${log.id()})}">수정</a>
-        <a class="button button-danger" th:href="@{/logs/{id}/delete(id=${log.id()})}">삭제</a>
+        <a sec:authorize="isAuthenticated()" class="button button-quiet"
+           th:href="@{/logs/{id}/edit(id=${log.id()})}">수정</a>
+        <a sec:authorize="isAuthenticated()" class="button button-danger"
+           th:href="@{/logs/{id}/delete(id=${log.id()})}">삭제</a>
     </nav>
 </main>
 </body>

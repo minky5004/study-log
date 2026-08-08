@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layout :: page(~{::title}, ~{::main})}">
 <head>
     <title>기록 · study-log</title>
@@ -13,7 +14,8 @@
                 <span th:text="${logs.totalElements}">0</span>개의 세션
             </p>
         </div>
-        <a class="button" th:href="@{/logs/new}">새 기록</a>
+        <!-- 비로그인에게는 감춘다 — 눌러야 로그인 화면이 나오는 버튼은 안내가 아니라 막다른 길 -->
+        <a sec:authorize="isAuthenticated()" class="button" th:href="@{/logs/new}">새 기록</a>
     </div>
 
     <!-- GET 으로 보내야 검색 결과 주소가 공유·새로고침에서 살아남는다 -->

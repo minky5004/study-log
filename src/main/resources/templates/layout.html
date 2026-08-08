@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="page(title, content)">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,6 +14,11 @@
     <nav>
         <a th:href="@{/logs}">기록</a>
         <a th:href="@{/stats}">통계</a>
+        <a sec:authorize="isAnonymous()" th:href="@{/login}">로그인</a>
+        <!-- 로그아웃은 상태를 바꾸므로 링크가 아니라 폼 — GET 으로 두면 링크 프리페치에도 반응한다 -->
+        <form sec:authorize="isAuthenticated()" method="post" th:action="@{/logout}">
+            <button type="submit" class="link-button">로그아웃</button>
+        </form>
     </nav>
 </header>
 <main th:replace="${content}"></main>
