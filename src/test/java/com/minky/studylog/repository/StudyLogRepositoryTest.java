@@ -166,6 +166,33 @@ class StudyLogRepositoryTest {
                 .isEqualTo(2);
     }
 
+    @Test
+    @DisplayName("태그 제안은 사용 빈도 내림차순 · 동률은 이름순")
+    void suggestsTagsByUsage() {
+        LocalDate date = LocalDate.of(2026, 8, 3);
+        saveLog("하나", "요약", null, "Spring", List.of("jpa", "큐"), date);
+        saveLog("둘", "요약", null, "Spring", List.of("jpa"), date);
+        saveLog("셋", "요약", null, "Spring", List.of("jpa", "http"), date);
+        flushAndClear();
+
+        // 동률까지 정하지 않으면 순서가 DB 마다 갈려 화면 제안이 흔들린다
+        assertThat(studyLogRepository.findDistinctTagsByUsage())
+                .containsExactly("jpa", "http", "큐");
+    }
+
+    @Test
+    @DisplayName("분야 제안은 최초 등록 표기 그대로 · 대소문자 무시 이름순")
+    void suggestsCategoryNamesIgnoringCase() {
+        categoryRepository.save(new Category("Spring"));
+        categoryRepository.save(new Category("algorithm"));
+        categoryRepository.save(new Category("CS"));
+        flushAndClear();
+
+        // name 으로 정렬하면 대문자가 앞으로 몰려 CS · Spring · algorithm 이 된다
+        assertThat(categoryRepository.findAllNamesOrderedByKey())
+                .containsExactly("algorithm", "CS", "Spring");
+    }
+
     /** 레포지토리는 감싸기·이스케이프가 끝난 패턴을 받는다 — 그 규칙 자체는 서비스가 소유. */
     private Page<StudyLog> search(String keyword) {
         return studyLogRepository.search("%" + keyword + "%", null, null, null, null, PAGE);

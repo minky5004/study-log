@@ -24,11 +24,12 @@
         </label>
         <label class="field">
             <span class="field-sublabel">분야</span>
-            <input type="text" th:field="*{categoryName}" placeholder="전체">
+            <input type="text" th:field="*{categoryName}" list="category-options" placeholder="전체">
         </label>
         <label class="field">
+            <!-- 검색은 태그 한 개짜리 입력이라 폼과 달리 스크립트가 필요 없다 -->
             <span class="field-sublabel">태그</span>
-            <input type="text" th:field="*{tag}" placeholder="전체">
+            <input type="text" th:field="*{tag}" list="tag-options" placeholder="전체">
         </label>
         <label class="field">
             <span class="field-sublabel">시작일</span>
@@ -91,6 +92,8 @@
         <span th:text="${logs.number + 1} + ' / ' + ${logs.totalPages}">1 / 1</span>
         <a th:if="${nextPageUrl}" th:href="${nextPageUrl}">다음</a>
     </nav>
+
+    <th:block th:replace="~{fragments/suggest :: datalists}"></th:block>
 </main>
 </body>
 </html>

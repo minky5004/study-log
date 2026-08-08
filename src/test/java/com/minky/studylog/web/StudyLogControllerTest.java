@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.minky.studylog.config.SecurityConfig;
 import com.minky.studylog.service.StudyLogNotFoundException;
 import com.minky.studylog.service.StudyLogService;
+import com.minky.studylog.service.SuggestionService;
 import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
@@ -51,10 +52,41 @@ class StudyLogControllerTest {
     @Autowired MockMvc mockMvc;
 
     @MockitoBean StudyLogService studyLogService;
+    @MockitoBean SuggestionService suggestionService;
 
     @BeforeEach
     void setUp() {
         Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class))).thenReturn(Page.empty());
+        Mockito.when(suggestionService.categoryNames()).thenReturn(List.of("Spring"));
+        Mockito.when(suggestionService.tagNames()).thenReturn(List.of("jpa"));
+    }
+
+    @Test
+    @DisplayName("새 기록 폼에 분야·태그 제안이 실림 — 오타 중복 분야를 입력 시점에 막는 통로")
+    void newFormCarriesSuggestions() throws Exception {
+        mockMvc.perform(get("/logs/new"))
+                .andExpect(content().string(containsString("<datalist id=\"category-options\">")))
+                .andExpect(content().string(containsString("<option value=\"Spring\">")))
+                .andExpect(content().string(containsString("<datalist id=\"tag-options\">")))
+                .andExpect(content().string(containsString("<option value=\"jpa\">")));
+    }
+
+    @Test
+    @DisplayName("검증 실패로 되돌아온 폼에도 제안이 남음 — 폼 뷰를 돌려주는 경로가 셋")
+    void rejectedFormKeepsSuggestions() throws Exception {
+        mockMvc.perform(post("/logs").param("title", "").param("studyDate", "2026-08-03")
+                        .param("startTime", "09:00").param("endTime", "10:00")
+                        .param("categoryName", "Spring").with(csrf()))
+                .andExpect(view().name("logs/form"))
+                .andExpect(content().string(containsString("<option value=\"jpa\">")));
+    }
+
+    @Test
+    @DisplayName("목록의 검색 칸도 같은 제안을 씀")
+    void listCarriesSuggestions() throws Exception {
+        mockMvc.perform(get("/logs"))
+                .andExpect(content().string(containsString("<option value=\"Spring\">")))
+                .andExpect(content().string(containsString("<option value=\"jpa\">")));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.minky.studylog.repository;
 
 import com.minky.studylog.domain.StudyLog;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -69,4 +70,14 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
                           @Param("from") LocalDate from,
                           @Param("to") LocalDate to,
                           Pageable pageable);
+
+    /**
+     * 입력 제안에 쓸 태그. 많이 쓴 것을 앞에 둬야 datalist 를 열자마자 보이는 몇 개가 실제로
+     * 고를 것들이다 — 이름순이면 자주 쓰는 태그가 알파벳 뒤쪽에 묻힌다.
+     *
+     * <p>빈도가 같으면 이름으로 가른다. 동률의 순서를 정하지 않으면 DB 가 돌려주는 순서에 맡겨져
+     * 같은 데이터에서도 화면마다 제안 차례가 달라진다.
+     */
+    @Query("select t from StudyLog l join l.tags t group by t order by count(t) desc, t asc")
+    List<String> findDistinctTagsByUsage();
 }
