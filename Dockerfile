@@ -17,6 +17,16 @@ WORKDIR /app
 # 그대로 두면 createdAt 만 아홉 시간 뒤로 어긋난다 — 화면의 날짜는 Asia/Seoul 로 고정돼 있다
 ENV TZ=Asia/Seoul
 
+# application.properties 가 local 을 바닥값으로 깔고 있어, 이것이 없으면 변수를 빠뜨린 실행이
+# 조용히 파일 H2 로 뜨고 h2 콘솔까지 열린다. 컨테이너를 띄운 사람은 돌아간다고 믿지만
+# 기록은 컨테이너와 함께 사라진다. prod 를 박아 두면 접속정보 없이는 부팅이 실패한다
+ENV SPRING_PROFILES_ACTIVE=prod
+
 COPY --from=build /app/build/libs/*.jar app.jar
+
+# 앱은 어디에도 쓰지 않는다 — 저장은 전부 DB 다. root 로 돌 이유가 없다
+RUN useradd --system --uid 10001 --create-home appuser
+USER appuser
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -6,6 +6,8 @@
 services:
   db:
     image: postgres:17-alpine
+    # 매일 쓰는 도구라 호스트를 재시작할 때마다 손으로 올리지 않는다. stop 은 존중한다
+    restart: unless-stopped
     environment:
       POSTGRES_DB: studylog
       POSTGRES_USER: studylog
@@ -20,6 +22,7 @@ services:
 
   app:
     build: .
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
