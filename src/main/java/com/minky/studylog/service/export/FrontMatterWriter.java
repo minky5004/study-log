@@ -40,11 +40,13 @@ public class FrontMatterWriter {
     }
 
     /**
-     * 태그는 {@code Set} 이라 저장 왕복에서 순회 순서가 흔들린다. 정렬하지 않으면 같은 기록을
-     * 두 번 내보낸 것만으로 vault 에 diff 가 남는다.
+     * 저장 순서를 그대로 내보낸다. 알파벳 정렬을 두었던 것은 태그 순회 순서가 왕복마다
+     * 흔들려 같은 기록을 두 번 내보내는 것만으로 vault 에 diff 가 남았기 때문 — 순서가 컬럼에
+     * 실리면서 그 전제가 사라졌고, 이제는 정렬이 오히려 사용자가 적은 순서를 파일에서 지운다.
+     * 재내보내기 diff 없음은 순서가 결정적이라는 것으로 그대로 성립한다.
      */
     private static String tagArray(StudyLog log) {
-        return log.getTags().stream().sorted()
+        return log.getTags().stream()
                 .map(tag -> '"' + escape(tag) + '"')
                 .collect(Collectors.joining(", ", "[", "]"));
     }

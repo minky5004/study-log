@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -143,15 +142,15 @@ class MarkdownRoundTripTest {
                                 log.getEndTime(),
                                 log.getDurationMinutes(),
                                 log.getCategory().getName(),
-                                Set.copyOf(log.getTags()),
+                                List.copyOf(log.getTags()),
                                 log.getSummary(),
                                 log.getNote()))
                         .toList());
     }
 
-    /** 태그는 {@code Set} 으로 견준다 — 순서는 저장 왕복에서 흔들리는 것이 이미 알려져 있다. */
+    /** 태그를 {@code List} 로 견주는 것이 왕복이 순서까지 덮는다는 뜻이다. */
     private record Snapshot(String title, LocalDate date, LocalTime start, LocalTime end,
-                            int durationMinutes, String category, Set<String> tags,
+                            int durationMinutes, String category, List<String> tags,
                             String summary, String note) {
     }
 }

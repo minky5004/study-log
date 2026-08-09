@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
 
@@ -88,8 +88,8 @@ public class FrontMatterParser {
      * ({@code tags: a, b}). 모르는 표기를 <b>조용히 빈 집합으로</b> 두면 태그만 사라진 기록이
      * 실패 표에도 뜨지 않은 채 들어간다.
      */
-    private static Set<String> readTags(List<String> frontMatter) {
-        Set<String> tags = new LinkedHashSet<>();
+    private static SequencedSet<String> readTags(List<String> frontMatter) {
+        SequencedSet<String> tags = new LinkedHashSet<>();
         for (int i = 0; i < frontMatter.size(); i++) {
             String line = frontMatter.get(i);
             if (!line.equals(line.stripLeading()) || !line.stripTrailing().startsWith("tags:")) {
@@ -119,7 +119,7 @@ public class FrontMatterParser {
         return items.toArray(String[]::new);
     }
 
-    private static void addAll(Set<String> tags, String[] values) {
+    private static void addAll(SequencedSet<String> tags, String[] values) {
         for (String value : values) {
             String tag = unquote(value.strip());
             if (!tag.isEmpty()) {

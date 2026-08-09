@@ -91,7 +91,7 @@ class StudyLogServiceTest {
         assertThat(page.getContent()).extracting(StudyLogListItem::title)
                 .containsExactly("오늘 저녁", "오늘 아침", "어제 것");
         assertThat(page.getContent().get(0).categoryName()).isEqualTo("Spring");
-        assertThat(page.getContent().get(0).tags()).containsExactlyInAnyOrder("인덱스", "jpa");
+        assertThat(page.getContent().get(0).tags()).containsExactly("인덱스", "jpa");
         assertThat(page.getContent().get(0).durationText()).isEqualTo("2시간");
     }
 
@@ -201,7 +201,7 @@ class StudyLogServiceTest {
     }
 
     @Test
-    @DisplayName("DB 왕복 후에도 태그 구성은 그대로 — 순서는 보장 대상 아님")
+    @DisplayName("DB 왕복 후에도 태그 구성·순서 그대로")
     void keepsTagsAcrossReload() {
         studyLogService.create(form("자료 구조 복습", LocalDate.of(2026, 8, 6),
                 LocalTime.of(14, 0), LocalTime.of(15, 20), "CS", "자료   구조, 큐"));
@@ -211,9 +211,7 @@ class StudyLogServiceTest {
 
         Page<StudyLogListItem> page = studyLogService.findAll(new StudyLogSearchCond(), PageRequest.of(0, 20));
 
-        // 순서까지 단언하지 않는 것은 @ElementCollection Set 이 해시 순서로 실려 오기 때문 —
-        // 입력 순서 보존은 컬렉션 타입·스키마를 바꿔야 해서 도메인 사이클에서 따로 다룬다
-        assertThat(page.getContent().get(0).tags()).containsExactlyInAnyOrder("자료 구조", "큐");
+        assertThat(page.getContent().get(0).tags()).containsExactly("자료 구조", "큐");
     }
 
     @Test
@@ -231,7 +229,7 @@ class StudyLogServiceTest {
 
         assertThat(detail.title()).isEqualTo("자료 구조 복습");
         assertThat(detail.categoryName()).isEqualTo("CS");
-        assertThat(detail.tags()).containsExactlyInAnyOrder("자료 구조", "큐");
+        assertThat(detail.tags()).containsExactly("자료 구조", "큐");
         assertThat(detail.durationText()).isEqualTo("1시간 20분");
         assertThat(detail.noteHtml()).contains("<h1>큐</h1>").doesNotContain("script");
     }
@@ -261,7 +259,7 @@ class StudyLogServiceTest {
         StudyLog updated = studyLogRepository.findById(id).orElseThrow();
         assertThat(updated.getTitle()).isEqualTo("트랜잭션 격리 수준");
         assertThat(updated.getDurationMinutes()).isEqualTo(150);
-        assertThat(updated.getTags()).containsExactlyInAnyOrder("트랜잭션", "jpa");
+        assertThat(updated.getTags()).containsExactly("트랜잭션", "jpa");
         assertThat(updated.getCategory().getName()).isEqualTo("Spring");
     }
 
@@ -286,7 +284,7 @@ class StudyLogServiceTest {
         entityManager.clear();
 
         StudyLog updated = studyLogRepository.findById(id).orElseThrow();
-        assertThat(updated.getTags()).containsExactlyInAnyOrder("jpa", "큐");
+        assertThat(updated.getTags()).containsExactly("jpa", "큐");
         assertThat(updated.getUpdatedAt()).isAfterOrEqualTo(beforeUpdate);
     }
 
@@ -347,7 +345,7 @@ class StudyLogServiceTest {
         assertThat(prefilled.getCategoryName()).isEqualTo("CS");
         assertThat(prefilled.getNote()).isEqualTo("# 큐\n\n- 선입선출");
         assertThat(prefilled.getTagsCsv().split(",\\s*"))
-                .containsExactlyInAnyOrder("자료 구조", "큐");
+                .containsExactly("자료 구조", "큐");
     }
 
     /**

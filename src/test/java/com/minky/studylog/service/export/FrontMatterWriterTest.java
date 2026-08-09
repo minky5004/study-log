@@ -7,7 +7,8 @@ import com.minky.studylog.domain.StudyLog;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.SequencedSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -63,18 +64,19 @@ class FrontMatterWriterTest {
     @Test
     @DisplayName("태그 없으면 빈 배열")
     void emptyTags() {
-        assertThat(writer.write(logWithTags(Set.of()))).contains("tags: []");
+        assertThat(writer.write(logWithTags(noTags()))).contains("tags: []");
     }
 
     /**
-     * 태그는 {@code Set} 이라 순회 순서가 저장 왕복에서 흔들린다. 정렬하지 않으면 같은 기록을
-     * 두 번 내보낸 것만으로 vault 에 diff 가 남는다.
+     * 알파벳 정렬을 두었던 자리다. 왕복마다 순서가 흔들리던 때는 정렬이 재내보내기 diff 를
+     * 막는 유일한 수단이었지만, 순서가 컬럼에 실린 뒤로는 저장 순서 자체가 결정적이라
+     * 같은 목적을 사용자가 적은 순서를 지우지 않고 이룬다.
      */
     @Test
-    @DisplayName("같은 기록은 몇 번을 내보내도 같은 바이트 — 태그 정렬")
-    void ordersTagsDeterministically() {
+    @DisplayName("태그는 저장 순서 그대로 — 알파벳 정렬 아님")
+    void writesTagsInStoredOrder() {
         assertThat(writer.write(logWithTags(tags("스트림", "jpa", "큐"))))
-                .contains("tags: [\"jpa\", \"스트림\", \"큐\"]");
+                .contains("tags: [\"스트림\", \"jpa\", \"큐\"]");
     }
 
     @Test
@@ -114,28 +116,36 @@ class FrontMatterWriterTest {
     }
 
     private static StudyLog logWithTitle(String title) {
-        return log(title, "2026-08-03", "09:00", "10:00", "Spring", Set.of(), null, null);
+        return log(title, "2026-08-03", "09:00", "10:00", "Spring", noTags(), null, null);
     }
 
-    private static StudyLog logWithTags(Set<String> tags) {
+    private static StudyLog logWithTags(SequencedSet<String> tags) {
         return log("제목", "2026-08-03", "09:00", "10:00", "Spring", tags, null, null);
     }
 
     private static StudyLog logWithSummary(String summary) {
-        return log("제목", "2026-08-03", "09:00", "10:00", "Spring", Set.of(), summary, null);
+        return log("제목", "2026-08-03", "09:00", "10:00", "Spring", noTags(), summary, null);
     }
 
     private static StudyLog logWithNote(String note) {
-        return log("제목", "2026-08-03", "09:00", "10:00", "Spring", Set.of(), null, note);
+        return log("제목", "2026-08-03", "09:00", "10:00", "Spring", noTags(), null, note);
     }
 
     private static StudyLog log(String title, String date, String start, String end,
-                                String category, Set<String> tags, String summary, String note) {
+                                String category, SequencedSet<String> tags, String summary, String note) {
         return new StudyLog(title, LocalDate.parse(date), LocalTime.parse(start),
                 LocalTime.parse(end), new Category(category), tags, summary, note);
     }
 
-    private static Set<String> tags(String... values) {
-        return new LinkedHashSet<>(Set.of(values));
+    /**
+     * {@code Set.of} 를 감싸면 헬퍼가 순서를 뒤섞는다 — 순서를 재는 테스트가 자기 입력부터
+     * 흔들리면 무엇도 재지 못한다.
+     */
+    private static SequencedSet<String> tags(String... values) {
+        return new LinkedHashSet<>(List.of(values));
+    }
+
+    private static SequencedSet<String> noTags() {
+        return new LinkedHashSet<>();
     }
 }

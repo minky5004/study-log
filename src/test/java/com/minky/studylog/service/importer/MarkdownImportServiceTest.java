@@ -61,7 +61,7 @@ class MarkdownImportServiceTest {
         // 파일의 durationMinutes 를 믿었으면 9999 가 들어왔다
         assertThat(saved.getDurationMinutes()).isEqualTo(120);
         assertThat(saved.getCategory().getName()).isEqualTo("Spring");
-        assertThat(saved.getTags()).containsExactlyInAnyOrder("jpa", "트랜잭션");
+        assertThat(saved.getTags()).containsExactly("jpa", "트랜잭션");
         assertThat(saved.getSummary()).isEqualTo("격리 수준 정리");
         assertThat(saved.getNote()).isEqualTo("# 노트");
     }

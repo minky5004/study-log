@@ -7,18 +7,23 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class StudyLogTest {
 
-    private StudyLog withTags(Set<String> tags) {
+    private StudyLog withTags(SequencedSet<String> tags) {
         return new StudyLog("제목", LocalDate.of(2026, 8, 3),
                 LocalTime.of(9, 0), LocalTime.of(10, 0),
                 new Category("Spring"), tags, "요약", "노트");
     }
 
+    /**
+     * 이 테스트만으로는 순서가 지켜진다고 말할 수 없다 — DB 를 거치지 않아 필드에 담아 둔
+     * 컬렉션을 그대로 되읽을 뿐이다. 왕복 쪽 그물은
+     * {@code StudyLogRepositoryTest.keepsTagOrderAcrossRoundTrip} 이 맡는다.
+     */
     @Test
     @DisplayName("태그는 입력 순서 그대로 노출 — 화면마다 순서가 흔들리지 않게")
     void keepsTagInsertionOrder() {

@@ -7,6 +7,7 @@ import com.minky.studylog.domain.StudyLog;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -130,6 +131,7 @@ class ExportFileNameResolverTest {
 
     private static StudyLog log(String title, String date, String start) {
         return new StudyLog(title, LocalDate.parse(date), LocalTime.parse(start),
-                LocalTime.parse(start).plusHours(1), new Category("Spring"), Set.of(), null, null);
+                LocalTime.parse(start).plusHours(1), new Category("Spring"),
+                new LinkedHashSet<>(), null, null);
     }
 }

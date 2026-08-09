@@ -5,7 +5,7 @@ import com.minky.studylog.repository.StudyLogRepository;
 import com.minky.studylog.service.CategoryService;
 import com.minky.studylog.service.TagNormalizer;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +41,7 @@ class NoteWriter {
                 note.date(), note.title(), note.start(), note.end())) {
             return false;
         }
-        Set<String> tags = normalized(note.tags());
+        SequencedSet<String> tags = normalized(note.tags());
         checkLengths(note, tags);
 
         studyLogRepository.save(new StudyLog(
@@ -56,7 +56,7 @@ class NoteWriter {
         return true;
     }
 
-    private static void checkLengths(ParsedNote note, Set<String> tags) {
+    private static void checkLengths(ParsedNote note, SequencedSet<String> tags) {
         check(note.title(), MAX_TITLE, "제목");
         check(note.summary(), MAX_SUMMARY, "요약");
         check(note.category(), MAX_CATEGORY, "분야");
@@ -72,8 +72,8 @@ class NoteWriter {
     }
 
     /** 태그는 저장 형태가 소문자라 화면 입력과 같은 규칙을 태운다 — 여기만 원문을 남기면 갈라진다. */
-    private static Set<String> normalized(Set<String> tags) {
-        Set<String> result = new LinkedHashSet<>();
+    private static SequencedSet<String> normalized(SequencedSet<String> tags) {
+        SequencedSet<String> result = new LinkedHashSet<>();
         for (String tag : tags) {
             String normalized = TagNormalizer.normalize(tag);
             if (!normalized.isEmpty()) {
