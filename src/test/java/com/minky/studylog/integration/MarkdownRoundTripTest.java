@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -94,8 +93,10 @@ class MarkdownRoundTripTest {
 
     /** 형식이 깨지기 쉬운 자리를 일부러 섞는다 — 자정 넘김 · 따옴표와 슬래시 · 본문 구분선. */
     private void seedAll() {
+        // 태그를 알파벳 역순으로 넣는다 — 정렬된 순서를 시드로 쓰면 내보내기가 다시 정렬해도
+        // 왕복이 통과해, 순서를 잰다고 적어 놓고 아무것도 재지 않는다
         seed("트랜잭션 격리 수준", "2026-08-03", "23:00", "01:00", "Spring",
-                "jpa, 트랜잭션", "격리 수준 정리", "# 노트\n\n---\n\n구분선 포함 본문");
+                "트랜잭션, jpa", "격리 수준 정리", "# 노트\n\n---\n\n구분선 포함 본문");
         seed("따옴표 \"제목\" · 슬래시/포함", "2026-08-03", "09:00", "10:00", "CS",
                 null, null, null);
         // 셋과 넷은 날짜·제목이 같고 시각만 다르다 — 내보내기가 HHmm 접미사로 가르는 자리
@@ -143,15 +144,15 @@ class MarkdownRoundTripTest {
                                 log.getEndTime(),
                                 log.getDurationMinutes(),
                                 log.getCategory().getName(),
-                                Set.copyOf(log.getTags()),
+                                List.copyOf(log.getTags()),
                                 log.getSummary(),
                                 log.getNote()))
                         .toList());
     }
 
-    /** 태그는 {@code Set} 으로 견준다 — 순서는 저장 왕복에서 흔들리는 것이 이미 알려져 있다. */
+    /** 태그를 {@code List} 로 견주는 것이 왕복이 순서까지 덮는다는 뜻이다. */
     private record Snapshot(String title, LocalDate date, LocalTime start, LocalTime end,
-                            int durationMinutes, String category, Set<String> tags,
+                            int durationMinutes, String category, List<String> tags,
                             String summary, String note) {
     }
 }

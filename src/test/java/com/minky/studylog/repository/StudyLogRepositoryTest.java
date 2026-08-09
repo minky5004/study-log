@@ -60,9 +60,29 @@ class StudyLogRepositoryTest {
         assertThat(found.getDurationMinutes()).isEqualTo(120);
         assertThat(found.getCreatedAt()).isNotNull();
         assertThat(found.getUpdatedAt()).isNotNull();
-        assertThat(found.getTags()).containsExactlyInAnyOrder("jpa", "트랜잭션");
+        assertThat(found.getTags()).containsExactly("jpa", "트랜잭션");
         assertThat(found.getCategory().getName()).isEqualTo("Spring");
         assertThat(found.getNote()).isEqualTo("# 노트");
+    }
+
+    /**
+     * 도메인 단위 테스트({@code StudyLogTest})는 같은 순서를 이미 단언하지만 DB 를 거치지 않아
+     * 통과했다. 순서가 사라지는 곳이 왕복이라 그물도 왕복에 있어야 한다 — 실려 올 때 순서를
+     * 되살릴 근거가 컬럼으로 남아 있지 않으면 여기서만 무너진다.
+     */
+    @Test
+    @DisplayName("태그 입력 순서가 DB 왕복 뒤에도 유지")
+    void keepsTagOrderAcrossRoundTrip() {
+        Category cs = categoryRepository.save(new Category("CS"));
+        Long id = studyLogRepository.save(new StudyLog(
+                "자료 구조 훑기", LocalDate.of(2026, 8, 3),
+                LocalTime.of(20, 0), LocalTime.of(21, 0),
+                cs, new LinkedHashSet<>(List.of("자료 구조", "큐")),
+                "요약", "# 노트")).getId();
+        flushAndClear();
+
+        assertThat(studyLogRepository.findById(id).orElseThrow().getTags())
+                .containsExactly("자료 구조", "큐");
     }
 
     @Test

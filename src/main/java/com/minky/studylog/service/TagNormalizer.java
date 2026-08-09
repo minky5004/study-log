@@ -3,6 +3,7 @@ package com.minky.studylog.service;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.SequencedSet;
 import java.util.stream.Collectors;
 
 public final class TagNormalizer {
@@ -24,8 +25,12 @@ public final class TagNormalizer {
         return raw.replaceAll("(?U)\\s+", " ").trim().toLowerCase(Locale.ROOT);
     }
 
-    /** 쉼표 구분 입력을 정규화 집합으로. 입력 순서를 보존하고 빈 값·중복을 버린다. */
-    public static LinkedHashSet<String> normalizeAll(String commaSeparated) {
+    /**
+     * 쉼표 구분 입력을 정규화 집합으로. 입력 순서를 보존하고 빈 값·중복을 버린다.
+     * 반환 타입이 {@link SequencedSet} 인 것은 이 순서가 저장까지 가는 계약이라서 —
+     * {@code Set} 으로 내리면 받는 쪽이 {@code HashSet} 을 넣어도 컴파일이 통과한다.
+     */
+    public static SequencedSet<String> normalizeAll(String commaSeparated) {
         if (commaSeparated == null || commaSeparated.isBlank()) {
             return new LinkedHashSet<>();
         }
