@@ -649,6 +649,69 @@ button:focus-visible {
     gap: 0.5rem;
 }
 
+/* ── 가져오기 ───────────────────────────────────── */
+
+.upload {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    padding: 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+}
+
+.upload input[type="file"] {
+    color: var(--muted);
+    font: inherit;
+}
+
+/* 셋을 나란히 두는 것이 요점 — 추가 건수만 크게 두면 건너뜀·실패가 결과에서 밀린다 */
+.tally {
+    display: flex;
+    gap: 2rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+
+.tally-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.tally-value {
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.failures {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.failures th,
+.failures td {
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+}
+
+.failures th {
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+/* 긴 경로가 표를 가로로 밀지 않게 — ZIP 안의 파일은 이름에 폴더가 붙는다 */
+.failures td:first-child {
+    overflow-wrap: anywhere;
+}
+
 /* ── 통계 카드 ──────────────────────────────────── */
 
 .stats-grid {

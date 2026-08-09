@@ -45,8 +45,10 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         // 쓰기 화면은 GET 이라 메서드 규칙에 걸리지 않는다 — 경로로 따로 세운다.
-                        // 백업 내려받기도 GET 이지만 한 요청이 DB 전량을 흘려보내 화면 단위 조회와 다르다
-                        .requestMatchers("/logs/new", "/logs/*/edit", "/logs/*/delete", "/export")
+                        // 백업 내려받기도 GET 이지만 한 요청이 DB 전량을 흘려보내 화면 단위 조회와 다르고,
+                        // 가져오기 화면은 POST 만 막으면 비로그인에게 업로드 폼이 보이되 제출만 거부된다
+                        .requestMatchers("/logs/new", "/logs/*/edit", "/logs/*/delete",
+                                "/export", "/import")
                         .authenticated()
                         .requestMatchers(STATE_CHANGING).authenticated()
                         .anyRequest().permitAll())

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>가져오기 · study-log</title>
+</head>
+<body>
+<main class="container">
+    <div class="page-head">
+        <div>
+            <h1>가져오기</h1>
+            <p class="lead">마크다운 파일이나 내보낸 ZIP 을 올리면 기록으로 들어갑니다.</p>
+        </div>
+        <a class="button button-quiet" th:href="@{/logs}">목록으로</a>
+    </div>
+
+    <form class="upload" method="post" enctype="multipart/form-data" th:action="@{/import}">
+        <label class="field">
+            <span class="field-sublabel">파일 — 마크다운 여러 개 또는 ZIP</span>
+            <input type="file" name="files" multiple accept=".md,.zip" required>
+        </label>
+        <p class="field-hint">
+            이미 있는 기록(같은 날짜 · 같은 제목)은 덮어쓰지 않고 건너뜁니다.
+            프론트매터에 <code>title</code> · <code>date</code> · <code>start</code> ·
+            <code>end</code> 가 있어야 합니다.
+            <!-- 상한을 넘기면 서버가 응답 없이 연결을 끊어 화면에 사유를 띄울 자리가 없다.
+                 그래서 부딪히기 전에 여기 적는다 -->
+            한 번에 <strong>20MB</strong> 까지 올릴 수 있습니다.
+        </p>
+        <div class="search-actions">
+            <button class="button" type="submit">올리기</button>
+        </div>
+    </form>
+
+    <section class="card" th:if="${report != null}">
+        <div class="card-head">
+            <h2 class="card-title">결과</h2>
+        </div>
+
+        <p class="empty" th:if="${report.empty()}">읽을 마크다운이 없었습니다.</p>
+
+        <ul class="tally" th:unless="${report.empty()}">
+            <li><span class="tally-label">추가</span>
+                <span class="tally-value" th:text="${report.succeeded()}">0</span></li>
+            <li><span class="tally-label">건너뜀</span>
+                <span class="tally-value" th:text="${report.skipped()}">0</span></li>
+            <li><span class="tally-label">실패</span>
+                <span class="tally-value" th:text="${report.failures().size()}">0</span></li>
+        </ul>
+
+        <!-- 사유가 없으면 사용자는 무엇을 고쳐야 할지 알 수 없다 — 건수만으로는 다시 올릴 수 없다 -->
+        <table class="failures" th:unless="${report.failures().isEmpty()}">
+            <thead>
+            <tr><th>파일</th><th>사유</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="failure : ${report.failures()}">
+                <td th:text="${failure.fileName()}">a.md</td>
+                <td th:text="${failure.reason()}">프론트매터 없음</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

@@ -76,6 +76,12 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
                           Pageable pageable);
 
     /**
+     * 가져오기 중복 판정. 날짜와 제목이 같으면 같은 세션으로 보고 덮어쓰지 않는다 — 대소문자를
+     * 무시하는 것은 표기가 흔들린 사본이 쌓이면 통계가 갈라지기 때문.
+     */
+    boolean existsByStudyDateAndTitleIgnoreCase(LocalDate studyDate, String title);
+
+    /**
      * 내보내기가 전량을 훑는 통로. 오프셋 대신 마지막으로 읽은 식별자를 기준으로 다음 덩어리를
      * 가져온다 — 오프셋은 페이지마다 count 쿼리를 부르고, 훑는 도중 기록이 하나 늘면 그 뒤가
      * 통째로 한 칸씩 밀려 한 건이 ZIP 에서 빠진다.
