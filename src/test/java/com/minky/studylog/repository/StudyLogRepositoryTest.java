@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.DisplayName;
@@ -255,9 +256,13 @@ class StudyLogRepositoryTest {
                 .containsExactly(new StartTimeSlice(LocalTime.of(20, 0), 180));
     }
 
-    /** 레포지토리는 감싸기·이스케이프가 끝난 패턴을 받는다 — 그 규칙 자체는 서비스가 소유. */
+    /**
+     * 레포지토리는 감싸기·이스케이프·소문자화가 끝난 패턴을 받는다 — 그 규칙 자체는 서비스가 소유.
+     * 여기서 소문자로 내리는 것이 그 계약의 재현이다.
+     */
     private Page<StudyLog> search(String keyword) {
-        return studyLogRepository.search("%" + keyword + "%", null, null, null, null, PAGE);
+        return studyLogRepository.search(
+                ("%" + keyword + "%").toLowerCase(Locale.ROOT), null, null, null, null, PAGE);
     }
 
     private void saveLog(String title, String summary, String note) {

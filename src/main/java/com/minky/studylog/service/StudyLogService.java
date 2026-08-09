@@ -7,6 +7,7 @@ import com.minky.studylog.web.dto.StudyLogDetail;
 import com.minky.studylog.web.dto.StudyLogForm;
 import com.minky.studylog.web.dto.StudyLogListItem;
 import com.minky.studylog.web.dto.StudyLogSearchCond;
+import java.util.Locale;
 import java.util.function.UnaryOperator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -63,6 +64,13 @@ public class StudyLogService {
      * 와일드카드로 새어 나간다 — {@code _} 한 글자가 전건을 걸고 {@code 100%} 가 {@code 100} 으로
      * 시작하는 모든 기록을 건다. 역슬래시를 먼저 바꾸는 순서라 뒤에 붙는 이스케이프가 다시
      * 이스케이프되지 않는다.
+     *
+     * <p><b>소문자화가 여기 있는 이유는 방언이다.</b> 쿼리 쪽에서 {@code lower(:keywordPattern)}
+     * 으로 감싸면 검색어가 없는 전체 조회에서 PostgreSQL 이 타입 없는 {@code null} 을
+     * {@code bytea} 로 추론해 {@code function lower(bytea) does not exist} 로 목록이 통째로
+     * 죽는다. H2 는 {@code MODE=PostgreSQL} 이어도 이것을 통과시킨다. 파라미터를 함수 밖으로
+     * 빼면 추론할 것이 없어지고, 덤으로 행마다 같은 패턴을 세 번 소문자화하던 것도 사라진다.
+     * 컬럼 쪽 {@code lower()} 는 그대로 남아 대소문자 무시는 유지된다.
      */
     private static String likePattern(String raw) {
         String collapsed = blankToNull(raw);
@@ -72,7 +80,7 @@ public class StudyLogService {
         String escaped = collapsed.replace("\\", "\\\\")
                 .replace("%", "\\%")
                 .replace("_", "\\_");
-        return "%" + escaped + "%";
+        return ("%" + escaped + "%").toLowerCase(Locale.ROOT);
     }
 
     /**
