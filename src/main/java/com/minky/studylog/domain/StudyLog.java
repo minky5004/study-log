@@ -64,6 +64,14 @@ public class StudyLog {
      * 그래서 필드는 {@code List} 지만 경계 타입은 {@link SequencedSet} 이다 — 저장 형태는
      * 순서 있는 행이고 도메인 규칙은 "순서 있는 중복 없음" 이라, 둘을 같은 타입으로 맞추면
      * 어느 한쪽이 거짓말이 된다.
+     * <p>
+     * <b>{@code (study_log_id, tag)} 유일 제약은 두지 않는다.</b> {@code Set} 매핑일 때는 그
+     * 조합이 기본 키였지만 순서 컬럼이 그 자리를 가져갔고, 같은 조합을 제약으로 되붙이면
+     * 태그 자리를 맞바꾸는 수정이 죽는다 — 하이버네이트가 자리마다
+     * {@code update study_log_tag set tag=? where study_log_id=? and tag_order=?} 를 내는데,
+     * 즉시 검사되는 제약에서는 플러시 중간에 같은 태그가 두 행에 겹치는 순간이 생긴다.
+     * 지연 검사는 PostgreSQL 에만 있어 H2 와 갈라지므로 쓰지 않는다. 중복 방어는 경계 타입이
+     * {@code Set} 인 것으로 남는다 — 들어오는 길이 전부 그 타입이라 중복은 만들 수가 없다.
      */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "study_log_tag",

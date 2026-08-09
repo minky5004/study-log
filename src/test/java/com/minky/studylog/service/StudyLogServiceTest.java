@@ -264,6 +264,31 @@ class StudyLogServiceTest {
     }
 
     /**
+     * 자리만 맞바꾸는 수정은 하이버네이트가 행을 지웠다 넣지 않고 자리마다 값을 갈아 끼우는
+     * 경로다 — 태그를 더하거나 빼는 수정만으로는 지나가지 않는다. {@code StudyLog.tags} 가
+     * {@code (study_log_id, tag)} 유일 제약을 두지 않는 이유가 여기 있고, 제약을 되붙이면
+     * 이 테스트가 그 자리에서 죽는다.
+     */
+    @Test
+    @DisplayName("태그를 자리만 맞바꾸는 수정도 순서 반영")
+    void updateSwapsTagPositions() {
+        Long id = studyLogService.create(form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", "자료 구조, 큐"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        studyLogService.update(id, form("자료 구조 복습", LocalDate.of(2026, 8, 6),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), "CS", "큐, 자료 구조"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(studyLogRepository.findById(id).orElseThrow().getTags())
+                .containsExactly("큐", "자료 구조");
+    }
+
+    /**
      * 스칼라 필드가 그대로면 엔티티 행이 더럽지 않아 {@code @PreUpdate} 가 불리지 않는다 —
      * 태그만 고친 기록의 수정 시각이 옛 값으로 남는 경로.
      */
