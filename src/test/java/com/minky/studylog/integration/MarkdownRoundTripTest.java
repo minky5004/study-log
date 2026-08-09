@@ -71,7 +71,7 @@ class MarkdownRoundTripTest {
 
         assertThat(report.failures()).isEmpty();
         assertThat(report.skipped()).isZero();
-        assertThat(report.succeeded()).isEqualTo(4);
+        assertThat(report.succeeded()).isEqualTo(5);
         assertThat(snapshots()).isEqualTo(before);
     }
 
@@ -88,8 +88,8 @@ class MarkdownRoundTripTest {
         ImportReport report = importService.importFrom(List.of(upload(zip)));
 
         assertThat(report.succeeded()).isZero();
-        assertThat(report.skipped()).isEqualTo(4);
-        assertThat(studyLogRepository.count()).isEqualTo(4);
+        assertThat(report.skipped()).isEqualTo(5);
+        assertThat(studyLogRepository.count()).isEqualTo(5);
     }
 
     /** 형식이 깨지기 쉬운 자리를 일부러 섞는다 — 자정 넘김 · 따옴표와 슬래시 · 본문 구분선. */
@@ -101,6 +101,8 @@ class MarkdownRoundTripTest {
         // 셋과 넷은 날짜·제목이 같고 시각만 다르다 — 내보내기가 HHmm 접미사로 가르는 자리
         seed("같은 날 같은 제목", "2026-08-04", "09:00", "10:00", "Java", "컬렉션", "a", "b");
         seed("같은 날 같은 제목", "2026-08-04", "14:00", "15:00", "Java", "스트림", "c", "d");
+        // 다섯은 셋과 시작까지 같고 종료만 다르다 — 접미사가 -0900-2 로 한 번 더 갈리는 자리
+        seed("같은 날 같은 제목", "2026-08-04", "09:00", "12:00", "Java", "제네릭", "e", "f");
     }
 
     private void seed(String title, String date, String start, String end, String category,
@@ -133,7 +135,7 @@ class MarkdownRoundTripTest {
      */
     private List<Snapshot> snapshots() {
         return transactionTemplate.execute(status ->
-                studyLogRepository.findAll(Sort.by("studyDate", "startTime")).stream()
+                studyLogRepository.findAll(Sort.by("studyDate", "startTime", "endTime")).stream()
                         .map(log -> new Snapshot(
                                 log.getTitle(),
                                 log.getStudyDate(),
