@@ -145,6 +145,17 @@ class StudyLogServiceTest {
         assertThat(matches("_")).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("검색어 대소문자는 서비스가 접음 — 쿼리가 파라미터를 lower() 로 감싸지 않으므로")
+    void keywordIsLoweredBeforeReachingQuery() {
+        seed("JPA 기초");
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(matches("JPA")).isEqualTo(1);
+        assertThat(matches("jpa")).isEqualTo(1);
+    }
+
     private void seed(String title) {
         studyLogService.create(form(title, LocalDate.of(2026, 8, 3),
                 LocalTime.of(9, 0), LocalTime.of(10, 0), "Spring", "jpa"));

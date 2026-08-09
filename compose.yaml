@@ -1,0 +1,43 @@
+# 앱과 PostgreSQL 을 한 번에 띄운다. README 의 실행 예시가 가리키는 것이 이 파일이다.
+#
+# DB 접속정보는 여기 그대로 적혀 있다. 컴포즈 네트워크 안에서만 닿고 호스트로 포트를 열지 않는
+# 일회용 컨테이너라, 감추면 지킬 것은 없고 실행 예시만 못 쓰게 된다.
+# 반대로 관리자 계정은 사람마다 다르고 커밋되면 안 되므로 .env 에서 읽는다 (.env.example 참고).
+services:
+  db:
+    image: postgres:17-alpine
+    # 매일 쓰는 도구라 호스트를 재시작할 때마다 손으로 올리지 않는다. stop 은 존중한다
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studylog
+      POSTGRES_USER: studylog
+      POSTGRES_PASSWORD: studylog
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studylog -d studylog"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/studylog
+      DB_USERNAME: studylog
+      DB_PASSWORD: studylog
+      # 값이 없으면 여기서 멈춘다 — 관리자 계정 없이 뜬 앱보다 낫다
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:?.env 에 APP_ADMIN_USERNAME 필요 — .env.example 참고}
+      APP_ADMIN_PASSWORD_HASH: ${APP_ADMIN_PASSWORD_HASH:?.env 에 APP_ADMIN_PASSWORD_HASH 필요 — .env.example 참고}
+    depends_on:
+      # 컨테이너가 떴다는 것과 DB 가 접속을 받는다는 것은 다르다.
+      # 이 조건이 없으면 첫 기동에서 접속 실패로 죽는 쪽이 기본값이다
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

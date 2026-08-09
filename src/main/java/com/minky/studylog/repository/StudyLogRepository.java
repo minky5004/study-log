@@ -42,17 +42,23 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
      * <p>{@code coalesce} 는 요약·노트가 비어도 제목 일치 기록이 남게 한다 — 세 칸을
      * 이어붙여 한 번에 훑는 형태로 바꾸면 빈 칸 하나가 행 전체를 떨어뜨린다.
      *
-     * <p>키워드는 이미 {@code %} 로 감싸고 특수문자를 이스케이프한 <b>패턴</b>으로 받는다 —
-     * 감싸기를 쿼리 쪽 {@code concat} 에 두면 이스케이프한 자리와 갈라져 한쪽만 고치는 경로가
-     * 생긴다. {@code escape} 문자는 서비스의 이스케이프 규칙과 짝이다.
+     * <p>키워드는 이미 {@code %} 로 감싸고 특수문자를 이스케이프한 뒤 <b>소문자로 내린</b>
+     * 패턴으로 받는다 — 감싸기를 쿼리 쪽 {@code concat} 에 두면 이스케이프한 자리와 갈라져
+     * 한쪽만 고치는 경로가 생긴다. {@code escape} 문자는 서비스의 이스케이프 규칙과 짝이다.
+     *
+     * <p><b>파라미터를 {@code lower()} 로 감싸지 않는다.</b> 검색어가 없는 전체 조회에서
+     * PostgreSQL 이 타입 없는 {@code null} 을 {@code bytea} 로 추론해 목록이 통째로 죽는다
+     * (H2 는 {@code MODE=PostgreSQL} 이어도 통과시켜 여기서는 드러나지 않는다). 그래서 소문자화는
+     * {@code StudyLogService.likePattern} 이 소유한다 — 거기서 빼면 대문자로 친 검색어가
+     * 조용히 0건이 되므로 둘은 함께 움직인다.
      */
     @Query(value = """
             select l from StudyLog l
             join fetch l.category c
             where (:keywordPattern is null
-                   or lower(l.title) like lower(:keywordPattern) escape '\\'
-                   or lower(coalesce(l.summary, '')) like lower(:keywordPattern) escape '\\'
-                   or lower(coalesce(l.note, '')) like lower(:keywordPattern) escape '\\')
+                   or lower(l.title) like :keywordPattern escape '\\'
+                   or lower(coalesce(l.summary, '')) like :keywordPattern escape '\\'
+                   or lower(coalesce(l.note, '')) like :keywordPattern escape '\\')
               and (:categoryKey is null or c.nameKey = :categoryKey)
               and (:tag is null or :tag member of l.tags)
               and (:from is null or l.studyDate >= :from)
@@ -61,9 +67,9 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
             countQuery = """
             select count(l) from StudyLog l
             where (:keywordPattern is null
-                   or lower(l.title) like lower(:keywordPattern) escape '\\'
-                   or lower(coalesce(l.summary, '')) like lower(:keywordPattern) escape '\\'
-                   or lower(coalesce(l.note, '')) like lower(:keywordPattern) escape '\\')
+                   or lower(l.title) like :keywordPattern escape '\\'
+                   or lower(coalesce(l.summary, '')) like :keywordPattern escape '\\'
+                   or lower(coalesce(l.note, '')) like :keywordPattern escape '\\')
               and (:categoryKey is null or l.category.nameKey = :categoryKey)
               and (:tag is null or :tag member of l.tags)
               and (:from is null or l.studyDate >= :from)
