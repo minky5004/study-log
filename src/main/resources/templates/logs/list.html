@@ -16,6 +16,7 @@
         </div>
         <!-- 비로그인에게는 감춘다 — 눌러야 로그인 화면이 나오는 버튼은 안내가 아니라 막다른 길 -->
         <div class="page-actions" sec:authorize="isAuthenticated()">
+            <a class="button button-quiet" th:href="@{/import}">가져오기</a>
             <a class="button button-quiet" th:href="@{/export}">내보내기</a>
             <a class="button" th:href="@{/logs/new}">새 기록</a>
         </div>
