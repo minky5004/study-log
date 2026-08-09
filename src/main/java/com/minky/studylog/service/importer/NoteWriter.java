@@ -37,7 +37,8 @@ class NoteWriter {
     /** @return 새로 넣었으면 {@code true}, 이미 있는 기록이라 건너뛰었으면 {@code false} */
     @Transactional
     boolean write(ParsedNote note) {
-        if (studyLogRepository.existsByStudyDateAndTitleIgnoreCase(note.date(), note.title())) {
+        if (studyLogRepository.existsByStudyDateAndTitleIgnoreCaseAndStartTime(
+                note.date(), note.title(), note.start())) {
             return false;
         }
         Set<String> tags = normalized(note.tags());
