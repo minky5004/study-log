@@ -5,6 +5,7 @@ import com.minky.studylog.repository.projection.CategoryTotal;
 import com.minky.studylog.repository.projection.DailyTotal;
 import com.minky.studylog.repository.projection.StartTimeSlice;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Limit;
@@ -76,10 +77,18 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
                           Pageable pageable);
 
     /**
-     * 가져오기 중복 판정. 날짜와 제목이 같으면 같은 세션으로 보고 덮어쓰지 않는다 — 대소문자를
-     * 무시하는 것은 표기가 흔들린 사본이 쌓이면 통계가 갈라지기 때문.
+     * 가져오기 중복 판정. 날짜·제목·시각 두 개가 모두 같아야 같은 세션으로 보고 덮어쓰지 않는다 —
+     * 대소문자를 무시하는 것은 표기가 흔들린 사본이 쌓이면 통계가 갈라지기 때문.
+     * <p>
+     * <b>키가 내보내기의 파일명 규칙과 짝이어야 한다.</b> {@code ExportFileNameResolver} 는 같은
+     * 날 같은 제목을 {@code HHmm} 으로 가르고, 시작까지 같으면 {@code -2} 를 한 번 더 붙인다.
+     * 판정이 그보다 좁으면 그렇게 갈라 낸 파일이 건너뜀으로 집계돼 백업을 되돌릴 때 한 건이
+     * 조용히 빈다. 같은 ZIP 재업로드는 네 값이 전부 같으므로 이 키로도 그대로 걸린다.
+     * <p>
+     * 남는 창은 네 값이 전부 같은 쌍 하나뿐이다 — 같은 시간대를 두 번 앉는 형태라 만들 수 없다.
      */
-    boolean existsByStudyDateAndTitleIgnoreCase(LocalDate studyDate, String title);
+    boolean existsByStudyDateAndTitleIgnoreCaseAndStartTimeAndEndTime(
+            LocalDate studyDate, String title, LocalTime startTime, LocalTime endTime);
 
     /**
      * 내보내기가 전량을 훑는 통로. 오프셋 대신 마지막으로 읽은 식별자를 기준으로 다음 덩어리를

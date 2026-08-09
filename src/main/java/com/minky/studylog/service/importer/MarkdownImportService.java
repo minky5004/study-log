@@ -203,7 +203,9 @@ public class MarkdownImportService {
         }
     }
 
+    /** DB 판정과 같은 키여야 한다 — 어긋나면 파일 사이 중복과 DB 중복의 기준이 갈린다. */
     private static String key(ParsedNote note) {
-        return note.date() + " " + note.title().toLowerCase(Locale.ROOT);
+        return note.date() + "\0" + note.title().toLowerCase(Locale.ROOT)
+                + "\0" + note.start() + "\0" + note.end();
     }
 }

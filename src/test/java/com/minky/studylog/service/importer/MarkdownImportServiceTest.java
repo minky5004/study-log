@@ -67,7 +67,7 @@ class MarkdownImportServiceTest {
     }
 
     @Test
-    @DisplayName("같은 날짜 · 같은 제목이 있으면 덮어쓰지 않고 건너뜀")
+    @DisplayName("같은 날짜 · 제목 · 시작 시각이면 덮어쓰지 않고 건너뜀")
     void skipsDuplicates() {
         seed("JPA 기초", LocalDate.of(2026, 8, 3));
 
@@ -102,13 +102,57 @@ class MarkdownImportServiceTest {
     }
 
     @Test
-    @DisplayName("한 배치 안의 동일 날짜 · 제목 중복도 두 번째부터 건너뜀")
+    @DisplayName("한 배치 안의 동일 날짜 · 제목 · 시각 중복도 두 번째부터 건너뜀")
     void skipsDuplicatesWithinBatch() {
         ImportReport report = importService.importFrom(List.of(
                 md("a.md", note("같은 제목")), md("b.md", note("같은 제목"))));
 
         assertThat(report.succeeded()).isEqualTo(1);
         assertThat(report.skipped()).isEqualTo(1);
+    }
+
+    /**
+     * 하루에 같은 주제를 두 번 앉는 것은 정상 사용이고, 내보내기도 그 둘을 {@code HHmm} 접미사로
+     * 갈라 별개 파일로 낸다. 시각이 키에서 빠지면 백업을 되돌릴 때 그 둘째 건이 조용히 빈다.
+     */
+    @Test
+    @DisplayName("날짜 · 제목이 같아도 시작 시각이 다르면 새 기록")
+    void keepsSameTitleAtDifferentStartTime() {
+        seed("JPA 기초", LocalDate.of(2026, 8, 3));
+
+        ImportReport report = importService.importFrom(
+                List.of(md("a.md", note("JPA 기초", "14:00", "15:00"))));
+
+        assertThat(report.succeeded()).isEqualTo(1);
+        assertThat(report.skipped()).isZero();
+        assertThat(studyLogRepository.count()).isEqualTo(2);
+    }
+
+    /**
+     * 내보내기는 시작 시각까지 같은 기록을 {@code -HHmm-2} 로 한 번 더 가른다
+     * ({@code ExportFileNameResolver}). 종료가 키에서 빠지면 그 둘째 파일이 돌아오지 못한다.
+     */
+    @Test
+    @DisplayName("시작 시각이 같아도 종료가 다르면 새 기록")
+    void keepsSameStartWithDifferentEndTime() {
+        seed("JPA 기초", LocalDate.of(2026, 8, 3));
+
+        ImportReport report = importService.importFrom(
+                List.of(md("a.md", note("JPA 기초", "09:00", "12:00"))));
+
+        assertThat(report.succeeded()).isEqualTo(1);
+        assertThat(studyLogRepository.count()).isEqualTo(2);
+    }
+
+    /** 배치 안 키와 DB 판정 키가 어긋나면 파일 사이 중복과 DB 중복의 기준이 갈린다. */
+    @Test
+    @DisplayName("한 배치 안에서도 시작 시각이 다르면 둘 다 저장")
+    void keepsSameTitleAtDifferentStartTimeWithinBatch() {
+        ImportReport report = importService.importFrom(List.of(
+                md("a.md", note("같은 제목")), md("b.md", note("같은 제목", "14:00", "15:00"))));
+
+        assertThat(report.succeeded()).isEqualTo(2);
+        assertThat(report.skipped()).isZero();
     }
 
     @Test
@@ -187,8 +231,13 @@ class MarkdownImportServiceTest {
     }
 
     private static String note(String title) {
+        return note(title, "09:00", "10:00");
+    }
+
+    /** 시작 시각이 중복 판정 키의 일부라 케이스마다 달리 준다. */
+    private static String note(String title, String start, String end) {
         return "---\ntitle: \"" + title + "\"\ndate: 2026-08-03\n"
-                + "start: \"09:00\"\nend: \"10:00\"\ncategory: \"CS\"\n---\n본문";
+                + "start: \"" + start + "\"\nend: \"" + end + "\"\ncategory: \"CS\"\n---\n본문";
     }
 
     private void seed(String title, LocalDate date) {
