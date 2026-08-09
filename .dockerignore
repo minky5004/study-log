@@ -1,0 +1,14 @@
+.git/
+.gradle/
+build/
+data/
+.claude/
+.claude-*/
+.idea/
+.vscode/
+.env
+*.log
+CLAUDE.md
+HELP.md
+README.md
+docs/
