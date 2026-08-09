@@ -3,10 +3,12 @@ package com.minky.studylog.service.importer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.minky.studylog.domain.StudyLog;
+import com.minky.studylog.repository.CategoryRepository;
 import com.minky.studylog.repository.StudyLogRepository;
 import com.minky.studylog.service.StudyLogService;
 import com.minky.studylog.web.dto.StudyLogForm;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -34,6 +36,7 @@ class MarkdownImportServiceTest {
     @Autowired MarkdownImportService importService;
     @Autowired StudyLogService studyLogService;
     @Autowired StudyLogRepository studyLogRepository;
+    @Autowired CategoryRepository categoryRepository;
 
     @Test
     @DisplayName("마크다운 하나가 기록 하나로 — 태그는 소문자 정규화 · 소요 시간은 시각에서 재계산")
@@ -124,15 +127,63 @@ class MarkdownImportServiceTest {
                 .containsExactlyInAnyOrder("첫째", "둘째");
     }
 
-    /**
-     * 내보낸 ZIP 을 그대로 되먹이면 전건이 중복이어야 한다. 이 한 줄이 파일명·형식·중복 판정이
-     * 서로 맞물려 있다는 증거다.
-     */
     @Test
     @DisplayName("빈 ZIP · 빈 목록도 오류 없이 0건")
     void handlesEmptyInput() {
         assertThat(importService.importFrom(List.of()).succeeded()).isZero();
         assertThat(importService.importFrom(List.of(zip("empty.zip"))).succeeded()).isZero();
+    }
+
+    /**
+     * 컬럼 길이를 넘긴 값을 그대로 저장하면 실패 사유가 JDBC 원문
+     * ({@code Value too long for column "TITLE"})이 된다 — 화면에 그대로 나가는 문장이라
+     * 사용자가 무엇을 고칠지 알 수 있어야 한다.
+     */
+    @Test
+    @DisplayName("컬럼 길이를 넘기면 고칠 수 있는 사유로 실패")
+    void reportsReadableReasonForTooLongValues() {
+        ImportReport report = importService.importFrom(List.of(
+                md("long.md", note("가".repeat(300)))));
+
+        assertThat(report.failures()).singleElement().satisfies(failure ->
+                assertThat(failure.reason()).contains("제목이 200자를 넘음", "300자"));
+    }
+
+    /**
+     * 분야 해석과 기록 저장이 한 트랜잭션에 없으면, 저장이 막힌 뒤에도 분야 행만 영구히 남는다.
+     * 분야 관리 화면을 만들지 않기로 했으므로 지울 수단도 없고, 자동완성과 색 배정에 계속 낀다.
+     */
+    @Test
+    @DisplayName("저장이 막히면 그 파일이 만든 분야도 남지 않음")
+    void rollsBackCategoryWhenSaveFails() {
+        importService.importFrom(List.of(md("long.md",
+                note("가".repeat(300)).replace("\"CS\"", "\"오직 이 파일만 쓰는 분야\""))));
+
+        assertThat(categoryRepository.findByNameKey("오직 이 파일만 쓰는 분야")).isEmpty();
+    }
+
+    /**
+     * 내용을 꺼내는 일 자체가 실패해도 배치는 이어져야 한다. 읽기가 try 밖에 있으면 그 파일에서
+     * 배치가 끝나고, 이미 커밋된 앞 건들은 보고 없이 사라진 것처럼 보인다.
+     */
+    @Test
+    @DisplayName("읽지 못한 파일도 실패 한 줄 · 뒤 파일은 계속 처리")
+    void unreadableFileDoesNotStopBatch() {
+        ImportReport report = importService.importFrom(List.of(
+                unreadable("broken-stream.md"), md("b.md", note("정상"))));
+
+        assertThat(report.succeeded()).isEqualTo(1);
+        assertThat(report.failures()).singleElement().satisfies(failure ->
+                assertThat(failure.fileName()).isEqualTo("broken-stream.md"));
+    }
+
+    private static MultipartFile unreadable(String name) {
+        return new MockMultipartFile("files", name, "text/markdown", new byte[] {1}) {
+            @Override
+            public byte[] getBytes() throws IOException {
+                throw new IOException("디스크 오류");
+            }
+        };
     }
 
     private static String note(String title) {

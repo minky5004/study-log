@@ -80,6 +80,32 @@ class FrontMatterParserTest {
         assertThat(note.category()).isEqualTo("CS");
     }
 
+    /**
+     * 모르는 표기를 조용히 빈 집합으로 두면 태그만 사라진 기록이 실패 표에도 뜨지 않은 채
+     * 들어간다 — 손으로 쓴 vault 에서 흔한 둘을 여기서 덮는다.
+     */
+    @Test
+    @DisplayName("쉼표 스칼라 · 들여쓰기 없는 블록 리스트 태그도 파싱")
+    void parsesLooseTagShapes() {
+        assertThat(parser.parse(frontMatter("tags: java, spring")).tags())
+                .containsExactly("java", "spring");
+        assertThat(parser.parse(frontMatter("tags:\n- java\n- spring")).tags())
+                .containsExactly("java", "spring");
+    }
+
+    /**
+     * 도메인이 같은 시각을 거부한다. 여기서 걸러야 화면의 실패 사유가 도메인 예외 문구가 아니라
+     * 파일을 고칠 말이 된다.
+     */
+    @Test
+    @DisplayName("start 와 end 가 같으면 사유와 함께 실패")
+    void rejectsEqualTimes() {
+        assertThatThrownBy(() -> parser.parse(
+                "---\ntitle: 제목\ndate: 2026-08-03\nstart: 09:00\nend: 09:00\n---\n"))
+                .isInstanceOf(ImportFormatException.class)
+                .hasMessageContaining("0분과 24시간");
+    }
+
     @Test
     @DisplayName("따옴표 없는 값도 파싱")
     void parsesUnquotedValues() {

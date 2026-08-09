@@ -37,15 +37,22 @@ public class FrontMatterParser {
             throw new ImportFormatException("프론트매터가 닫히지 않음 — 끝에 --- 이 없습니다");
         }
 
+        // 순서가 곧 실패 사유의 우선순위다 — 제목도 날짜도 없는 파일에 시각을 먼저 나무라면
+        // 사용자는 시각만 채워 다시 올린다
         Map<String, String> keys = readKeys(lines.subList(1, closing));
-        Set<String> tags = readTags(lines.subList(1, closing));
-        return new ParsedNote(
-                required(keys, "title"),
-                parsed(required(keys, "date"), "date", LocalDate::parse),
-                time(keys, "start"),
-                time(keys, "end"),
+        String title = required(keys, "title");
+        LocalDate date = parsed(required(keys, "date"), "date", LocalDate::parse);
+        LocalTime start = time(keys, "start");
+        LocalTime end = time(keys, "end");
+
+        // 도메인이 같은 시각을 거부한다 — 0분과 24시간을 구별할 수 없어서. 여기서 걸러야
+        // 화면의 실패 사유가 도메인 예외 문구가 아니라 파일을 고칠 말이 된다
+        if (start.equals(end)) {
+            throw new ImportFormatException("start 와 end 가 같음 — 0분과 24시간을 구별할 수 없습니다");
+        }
+        return new ParsedNote(title, date, start, end,
                 keys.getOrDefault("category", DEFAULT_CATEGORY),
-                tags,
+                readTags(lines.subList(1, closing)),
                 keys.get("summary"),
                 body(lines, closing));
     }
@@ -76,33 +83,38 @@ public class FrontMatterParser {
         return keys;
     }
 
-    /** 인라인 배열과 블록 리스트 둘 다 받는다. 옵시디언이 쓰는 표기가 후자다. */
+    /**
+     * 세 표기를 모두 받는다 — 인라인 배열({@code [a, b]}) · 블록 리스트 · 쉼표 스칼라
+     * ({@code tags: a, b}). 모르는 표기를 <b>조용히 빈 집합으로</b> 두면 태그만 사라진 기록이
+     * 실패 표에도 뜨지 않은 채 들어간다.
+     */
     private static Set<String> readTags(List<String> frontMatter) {
         Set<String> tags = new LinkedHashSet<>();
         for (int i = 0; i < frontMatter.size(); i++) {
             String line = frontMatter.get(i);
-            if (!line.stripTrailing().startsWith("tags:")) {
+            if (!line.equals(line.stripLeading()) || !line.stripTrailing().startsWith("tags:")) {
                 continue;
             }
             String inline = line.substring(line.indexOf(':') + 1).strip();
-            if (inline.startsWith("[")) {
-                addAll(tags, inline.replaceAll("^\\[|]$", "").split(","));
-            } else if (inline.isEmpty()) {
+            if (inline.isEmpty()) {
                 addAll(tags, blockItems(frontMatter, i + 1));
+            } else {
+                addAll(tags, inline.replaceAll("^\\[|]$", "").split(","));
             }
             break;
         }
         return tags;
     }
 
+    /** 들여쓰기는 따지지 않는다 — 손으로 쓴 vault 는 {@code - } 를 첫 칸에 두는 쪽이 흔하다. */
     private static String[] blockItems(List<String> frontMatter, int from) {
         List<String> items = new ArrayList<>();
         for (int i = from; i < frontMatter.size(); i++) {
-            String line = frontMatter.get(i);
-            if (line.isBlank() || !line.startsWith(" ") || !line.strip().startsWith("- ")) {
+            String item = frontMatter.get(i).strip();
+            if (!item.startsWith("- ")) {
                 break;
             }
-            items.add(line.strip().substring(2));
+            items.add(item.substring(2));
         }
         return items.toArray(String[]::new);
     }
