@@ -40,15 +40,23 @@ services:
         condition: service_healthy
     healthcheck:
       # 앱에도 같은 구별이 필요하다 — 컨테이너 running 은 스프링이 기동을 끝냈다는 뜻이 아니다.
-      # /actuator/health 는 DB 접속까지 판정에 넣으므로, healthy 는 화면이 뜬다는 뜻에 가깝다.
-      # 런타임 이미지에 curl 이 이미 있어 패키지를 더 깔지 않고, -f 가 DOWN 의 503 도 실패로 잡는다
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      # container 그룹은 DB 접속까지 판정에 넣으므로 healthy 는 요청을 받는다는 뜻에 가깝다.
+      # 복합 /actuator/health 를 그대로 쓰지 않는 이유는 application.properties 의 그룹 정의에.
+      #
+      # 런타임 이미지에 curl 이 이미 있어 패키지를 더 깔지 않고, -f 가 DOWN 의 503 도 실패로 잡는다.
+      # 포트를 박지 않는 것은 prod 가 server.port=${PORT:8080} 로 밖에서 정할 길을 열어 두었기
+      # 때문 — 박아 두면 PORT 를 준 순간 앱은 멀쩡히 뜨고 healthcheck 만 영영 빗나간다.
+      # `$$` 는 컴포즈가 아니라 컨테이너 셸이 풀라는 표시
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$${PORT:-8080}/actuator/health/container"]
       interval: 5s
       timeout: 3s
       # 부팅 중 실패는 retries 를 깎지 않는다 — 없으면 첫 기동이 아직 뜨는 중이라는 이유로
-      # unhealthy 로 떨어지고, restart 정책과 맞물리면 그대로 재시작 반복이 된다
+      # unhealthy 로 떨어지고, up --wait 가 그 자리에서 실패한다.
+      # 기동 예산은 60초 + 5초×12 로 2분 — 실측은 로컬 20초대이고, 러너 첫 빌드의 찬 캐시가
+      # 이 값을 쓰는 쪽이다. 넘기면 컨테이너가 unhealthy 로 확정되므로 CI 의 --wait-timeout 은
+      # 이보다 뒤(180초)에 서서 바깥 상한만 맡는다
       start_period: 60s
-      retries: 5
+      retries: 12
 
 volumes:
   db-data:

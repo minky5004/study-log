@@ -64,7 +64,9 @@ jobs:
           EOF
 
       # --wait 는 healthcheck 가 healthy 를 낼 때까지 막는다. 준비 신호를 compose 가 이미
-      # 알고 있으므로 여기서 다시 폴링 루프를 쓰지 않는다 — 상한도 잡 전체가 아니라 이 한 줄이 진다
+      # 알고 있으므로 여기서 다시 폴링 루프를 쓰지 않는다.
+      # 기동 예산을 정하는 것은 이 값이 아니라 compose 의 start_period + retries(2분)다 —
+      # 넘기면 컨테이너가 먼저 unhealthy 로 확정된다. 180초는 그 바깥의 상한일 뿐
       - name: Compose up
         run: docker compose up -d --build --wait --wait-timeout 180
 
