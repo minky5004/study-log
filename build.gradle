@@ -20,6 +20,11 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-h2console'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	// Boot 4.1 의 좌표는 `spring-boot-flyway` — Boot 3 문서의 `spring-boot-starter-flyway` 가 아니다.
+	// 이것이 끌어오는 것은 flyway-core 뿐이라, Flyway 10 부터 분리된 PostgreSQL 지원 모듈을
+	// 따로 적는다. 빠뜨리면 부팅 시점에 "no database plugin" 으로 죽는다
+	implementation 'org.springframework.boot:spring-boot-flyway'
+	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'

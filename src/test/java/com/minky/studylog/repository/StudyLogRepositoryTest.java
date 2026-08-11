@@ -39,7 +39,12 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>{@code Replace.NONE} 이 필요한 것은 {@code @DataJpaTest} 가 데이터소스를 내장 DB 로
  * 갈아 끼우는 것을 기본으로 하기 때문 — 빼면 컨테이너는 뜨지만 아무도 접속하지 않는다.
  */
-@DataJpaTest
+@DataJpaTest(properties = {
+        // 여기서만 운영과 같은 배선으로 돌린다 — 스키마는 Flyway 가 만들고 하이버네이트는 대조만.
+        // 엔티티에 필드를 더하고 마이그레이션을 빠뜨리면 이 클래스 전체가 컨텍스트 기동에서 멈춘다.
+        // `create-drop` 으로 두면 하이버네이트가 스키마를 대신 만들어 그 누락이 배포까지 살아남는다
+        "spring.flyway.enabled=true",
+        "spring.jpa.hibernate.ddl-auto=validate"})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(PostgresTestContainer.class)
 @ActiveProfiles("test")
