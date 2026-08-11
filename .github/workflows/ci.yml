@@ -63,30 +63,23 @@ jobs:
           APP_ADMIN_PASSWORD_HASH='$2y$10$oXmFHYCHlk4HjeaP.c9.7u1VPGxL4Iw6eeqYvyaPK24dzNHG88FO6'
           EOF
 
+      # --wait 는 healthcheck 가 healthy 를 낼 때까지 막는다. 준비 신호를 compose 가 이미
+      # 알고 있으므로 여기서 다시 폴링 루프를 쓰지 않는다 — 상한도 잡 전체가 아니라 이 한 줄이 진다
       - name: Compose up
-        run: docker compose up -d --build
+        run: docker compose up -d --build --wait --wait-timeout 180
 
-      # 이미지가 만들어졌다는 것과 앱이 응답한다는 것은 다르다. /logs 는 로그인 없이 열리고
-      # DB 를 거치므로, 200 하나에 이미지 · 컴포즈 배선 · healthcheck 게이팅 · prod 프로파일 ·
-      # PostgreSQL 접속 · 스키마 생성이 한꺼번에 걸린다.
+      # healthy 는 스프링이 뜨고 DB 에 닿는다는 뜻이지 화면이 그려진다는 뜻은 아니다.
+      # /logs 는 로그인 없이 열리고 조회 쿼리를 거치므로, 200 하나에 prod 프로파일 ·
+      # PostgreSQL 방언 · 스키마 생성 · 템플릿 렌더가 한꺼번에 걸린다.
       #
       # 주소를 127.0.0.1 로 박는 것은 compose 가 IPv4 로만 게시하기 때문 — localhost 는 러너
-      # 설정에 따라 ::1 을 먼저 잡아 매 시도가 접속 거부로 떨어진다.
-      # curl 에 상한을 거는 것은 앱이 포트만 열고 응답을 물고 있으면 기본값이 무한정 기다려,
-      # 60회를 채우지 못한 채 실패 출력도 컨테이너 로그도 없이 잡 상한까지 가기 때문
+      # 설정에 따라 ::1 을 먼저 잡아 접속 거부로 떨어진다
       - name: Smoke test
         run: |
-          for i in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' \
-                     --connect-timeout 2 --max-time 5 http://127.0.0.1:8080/logs || true)
-            if [ "$code" = "200" ]; then
-              echo "GET /logs -> 200 (${i}번째 시도)"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "60회 안에 200 이 오지 않음 — 마지막 응답 코드 $code"
-          exit 1
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+                   http://127.0.0.1:8080/logs || true)
+          echo "GET /logs -> $code"
+          [ "$code" = "200" ]
 
       # 부팅이 멈춘 자리는 러너 로그가 아니라 컨테이너 안에 남는다
       - name: Container logs on failure

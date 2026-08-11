@@ -38,6 +38,17 @@ services:
       # 이 조건이 없으면 첫 기동에서 접속 실패로 죽는 쪽이 기본값이다
       db:
         condition: service_healthy
+    healthcheck:
+      # 앱에도 같은 구별이 필요하다 — 컨테이너 running 은 스프링이 기동을 끝냈다는 뜻이 아니다.
+      # /actuator/health 는 DB 접속까지 판정에 넣으므로, healthy 는 화면이 뜬다는 뜻에 가깝다.
+      # 런타임 이미지에 curl 이 이미 있어 패키지를 더 깔지 않고, -f 가 DOWN 의 503 도 실패로 잡는다
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      # 부팅 중 실패는 retries 를 깎지 않는다 — 없으면 첫 기동이 아직 뜨는 중이라는 이유로
+      # unhealthy 로 떨어지고, restart 정책과 맞물리면 그대로 재시작 반복이 된다
+      start_period: 60s
+      retries: 5
 
 volumes:
   db-data:
