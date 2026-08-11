@@ -7,6 +7,7 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -77,6 +78,48 @@ class SecurityAccessTest {
     void statsApiIsPublic() throws Exception {
         mockMvc.perform(get("/api/stats/hours")).andExpect(status().isOk());
         mockMvc.perform(get("/api/stats/categories")).andExpect(status().isOk());
+    }
+
+    /**
+     * 컨테이너 healthcheck 가 로그인 없이 물어보는 자리라 열려 있어야 하고, 열린 만큼
+     * 나가는 것은 UP/DOWN 뿐이어야 한다. 두 조건은 어긋나는 방향이 반대라 한 자리에 묶는다.
+     */
+    @Test
+    @DisplayName("health 는 비로그인 공개 · 세부는 응답에 싣지 않음")
+    void healthIsPublicWithoutDetails() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.components").doesNotExist())
+                .andExpect(jsonPath("$.details").doesNotExist());
+    }
+
+    /**
+     * 컨테이너 healthcheck 가 실제로 두드리는 주소는 복합 health 가 아니라 이 그룹이다.
+     * 그룹 정의가 지워지면 healthcheck 는 404 를 받아 앱이 멀쩡해도 unhealthy 로 굳는다.
+     */
+    @Test
+    @DisplayName("healthcheck 가 쓰는 container 그룹이 살아 있음 · 세부는 여기도 감춤")
+    void containerHealthGroupIsPublic() throws Exception {
+        mockMvc.perform(get("/actuator/health/container"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.components").doesNotExist());
+    }
+
+    /**
+     * 노출 목록을 health 하나로 못박은 것이 지켜지는지 본다. 스타터가 늘 때마다 끝점이 따라
+     * 느는 것이 액추에이터의 기본 성질이라, 설정이 풀리면 설정 파일이 아니라 여기서 걸린다.
+     * 목록 끝점 {@code /actuator} 를 함께 세우는 것은 그쪽이 노출되지 않은 끝점의 이름까지
+     * 링크로 흘려, 여기 적힌 "health 밖은 없다" 를 사실이 아니게 만들기 때문.
+     */
+    @Test
+    @DisplayName("health 밖의 액추에이터 끝점 · 목록 끝점은 공개도 인증도 아닌 404")
+    @WithMockUser(roles = "ADMIN")
+    void otherActuatorEndpointsAreNotMapped() throws Exception {
+        mockMvc.perform(get("/actuator")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/actuator/env")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/actuator/beans")).andExpect(status().isNotFound());
     }
 
     @Test

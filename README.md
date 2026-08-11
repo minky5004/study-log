@@ -96,5 +96,5 @@ resources/templates/  logs · stats · io · 공통 layout
 |---|---|
 | 단위·통합 테스트 217개 | `./gradlew test --rerun-tasks` 25초 · 전부 통과 |
 | 백업이 실제로 복구되는가 | 내보낸 ZIP 을 비운 DB 에 되넣어 원본과 일치 · 같은 ZIP 재업로드는 전건 건너뜀 (`MarkdownRoundTripTest`) |
-| 이미지가 PostgreSQL 위에서 뜨는가 | CI `image` 잡이 `docker compose up` 으로 띄워 `GET /logs` 200 까지 확인 — 1분 23초 (run 31423242374) |
+| 이미지가 PostgreSQL 위에서 뜨는가 | CI `image` 잡이 compose 로 띄워 앱 healthcheck 가 healthy 를 낼 때까지 기다린 뒤 `GET /logs` 200 확인 — 1분 26초 (run 31487631830) |
 | 실제 데이터로 화면이 차는가 | 커밋 이력에서 만든 마크다운 130개를 `/import` 업로드 — 추가 130 · 건너뜀 0 · 실패 0 |
