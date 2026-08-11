@@ -10,9 +10,7 @@
 
 ![검색에서 상세, 통계까지](docs/screenshots/demo.gif)
 
-| 기록 목록 | 노트 상세 | 통계 |
-|---|---|---|
-| ![목록](docs/screenshots/logs.png) | ![상세](docs/screenshots/note.png) | ![통계](docs/screenshots/stats.png) |
+![통계 — 일별 잔디 · 주간 추이 · 분야별 · 시간대](docs/screenshots/stats.png)
 
 화면에 찬 130개 세션은 더미가 아니라 실제 커밋 이력이다. 개인 리포 8개의 커밋을 90분 간격으로
 끊어 세션으로 묶고 마크다운으로 만들어 `/import` 로 올렸다 — 이관 전용 도구를 따로 만들지 않은
@@ -72,8 +70,9 @@ export APP_ADMIN_PASSWORD_HASH='$2y$10$...'
 
 **감수한 것**
 
-- 검색은 LIKE — 기록이 수천 건인 개인 도구 규모에서는 인덱스 없이도 돌고, 전문검색으로 옮길
-  기준은 따로 잡아 두었다
+- 검색은 LIKE — `%keyword%` 는 인덱스를 못 탄다. 기록 5,000건과 검색 응답 300ms 를 전환 기준으로
+  잡아 두고 그때까지는 두기로 했다. 한국어 전문검색은 `pg_bigm` 같은 확장이 필요해, 올릴 곳이
+  확장 설치를 허용하는지가 선행 조건이다
 - 테스트는 인메모리 H2 전용이라 PostgreSQL 방언 계약이 그물 밖이다. 실제로 검색 쿼리의
   `lower(null)` 이 `bytea` 로 추론돼 목록 첫 화면이 통째로 500 이던 결함을 컨테이너에서 처음 만났다
 - 공개 URL 이 없다 — 무료 상시가동 경로가 전부 결제 카드를 요구해서, 돌아간다는 근거를 위 화면
@@ -82,12 +81,12 @@ export APP_ADMIN_PASSWORD_HASH='$2y$10$...'
 ## 구조
 
 ```
-domain/          엔티티 · 자정 넘김 시간 계산 · 태그 순서 컬럼
-repository/      조회 · 통계 group by
-service/         CRUD · 분야/태그 정규화 · 통계 집계 · 마크다운 렌더 + 새니타이즈
-service/export/  기록 → YAML 프론트매터 마크다운 ZIP
-service/importer/ 마크다운 ZIP → 기록 (노트 하나가 트랜잭션 하나)
-web/             컨트롤러 · 폼 DTO · 통계 JSON(/api/stats)
+domain/               엔티티 · 자정 넘김 시간 계산 · 태그 순서 컬럼
+repository/           조회 · 통계 group by
+service/              CRUD · 분야/태그 정규화 · 통계 집계 · 마크다운 렌더 + 새니타이즈
+service/export/       기록 → YAML 프론트매터 마크다운 ZIP
+service/importer/     마크다운 ZIP → 기록 (노트 하나가 트랜잭션 하나)
+web/                  컨트롤러 · 폼 DTO · 통계 JSON(/api/stats)
 resources/templates/  logs · stats · io · 공통 layout
 ```
 
