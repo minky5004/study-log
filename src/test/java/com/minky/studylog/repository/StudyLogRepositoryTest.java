@@ -20,15 +20,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
+/**
+ * 리포지토리는 <b>실제 PostgreSQL 위에서</b> 돈다. 근거는 {@link PostgresTestContainer}.
+ *
+ * <p>{@code Replace.NONE} 이 필요한 것은 {@code @DataJpaTest} 가 데이터소스를 내장 DB 로
+ * 갈아 끼우는 것을 기본으로 하기 때문 — 빼면 컨테이너는 뜨지만 아무도 접속하지 않는다.
+ */
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(PostgresTestContainer.class)
 @ActiveProfiles("test")
 class StudyLogRepositoryTest {
 
@@ -178,6 +188,25 @@ class StudyLogRepositoryTest {
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31), PAGE);
 
         assertThat(found.getContent()).extracting(StudyLog::getTitle).containsExactly("대상");
+    }
+
+    /**
+     * 경계 하나만 준 검색은 나머지 하나가 {@code null} 인 채로 나가는 유일한 경로다. 화면의
+     * 기간 칸 둘이 서로 없어도 되므로 실제로 가장 흔한 형태이기도 하다. 캐스트가 {@code :from}
+     * 에만 붙고 {@code :to} 에서 빠지면 여기서만 갈린다 — 위 조합 테스트는 둘 다 채워 통과한다.
+     */
+    @Test
+    @DisplayName("시작·종료 한쪽만 준 기간 검색")
+    void filtersByOpenEndedPeriod() {
+        saveLog("이른 날", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 7, 31));
+        saveLog("늦은 날", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 8, 10));
+        flushAndClear();
+
+        LocalDate august = LocalDate.of(2026, 8, 1);
+        assertThat(studyLogRepository.search(null, null, null, august, null, PAGE).getContent())
+                .extracting(StudyLog::getTitle).containsExactly("늦은 날");
+        assertThat(studyLogRepository.search(null, null, null, null, august, PAGE).getContent())
+                .extracting(StudyLog::getTitle).containsExactly("이른 날");
     }
 
     @Test

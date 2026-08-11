@@ -47,10 +47,16 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
      * 한쪽만 고치는 경로가 생긴다. {@code escape} 문자는 서비스의 이스케이프 규칙과 짝이다.
      *
      * <p><b>파라미터를 {@code lower()} 로 감싸지 않는다.</b> 검색어가 없는 전체 조회에서
-     * PostgreSQL 이 타입 없는 {@code null} 을 {@code bytea} 로 추론해 목록이 통째로 죽는다
-     * (H2 는 {@code MODE=PostgreSQL} 이어도 통과시켜 여기서는 드러나지 않는다). 그래서 소문자화는
-     * {@code StudyLogService.likePattern} 이 소유한다 — 거기서 빼면 대문자로 친 검색어가
-     * 조용히 0건이 되므로 둘은 함께 움직인다.
+     * PostgreSQL 이 타입 없는 {@code null} 을 {@code bytea} 로 추론해 목록이 통째로 죽는다.
+     * 그래서 소문자화는 {@code StudyLogService.likePattern} 이 소유한다 — 거기서 빼면 대문자로
+     * 친 검색어가 조용히 0건이 되므로 둘은 함께 움직인다.
+     *
+     * <p><b>기간 두 개만 {@code cast} 를 쓴다.</b> pgjdbc 는 날짜를 타입 미지정으로 실어 보내고
+     * 서버가 쓰이는 자리에서 타입을 정하는데, {@code :from is null} 에는 정할 근거가 없어
+     * {@code could not determine data type of parameter} 로 검색 전체가 죽는다. 문자열 조건은
+     * 바인딩에 타입이 실려 같은 형태여도 걸리지 않으므로 그쪽까지 감싸지 않는다.
+     * <b>둘 다 H2 에서는 끝까지 초록이었다</b> — 이 쿼리가 리포지토리 테스트를 실제 PostgreSQL
+     * 위로 옮긴 이유다.
      */
     @Query(value = """
             select l from StudyLog l
@@ -61,8 +67,8 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
                    or lower(coalesce(l.note, '')) like :keywordPattern escape '\\')
               and (:categoryKey is null or c.nameKey = :categoryKey)
               and (:tag is null or :tag member of l.tags)
-              and (:from is null or l.studyDate >= :from)
-              and (:to is null or l.studyDate <= :to)
+              and (cast(:from as LocalDate) is null or l.studyDate >= :from)
+              and (cast(:to as LocalDate) is null or l.studyDate <= :to)
             """,
             countQuery = """
             select count(l) from StudyLog l
@@ -72,8 +78,8 @@ public interface StudyLogRepository extends JpaRepository<StudyLog, Long> {
                    or lower(coalesce(l.note, '')) like :keywordPattern escape '\\')
               and (:categoryKey is null or l.category.nameKey = :categoryKey)
               and (:tag is null or :tag member of l.tags)
-              and (:from is null or l.studyDate >= :from)
-              and (:to is null or l.studyDate <= :to)
+              and (cast(:from as LocalDate) is null or l.studyDate >= :from)
+              and (cast(:to as LocalDate) is null or l.studyDate <= :to)
             """)
     Page<StudyLog> search(@Param("keywordPattern") String keywordPattern,
                           @Param("categoryKey") String categoryKey,
