@@ -22,7 +22,7 @@
 |---|---|
 | Language | Java 21 |
 | Framework | Spring Boot 4.1 · Spring Data JPA · Spring Security · Validation |
-| Database | PostgreSQL (운영 · 컨테이너) · H2 (로컬 · 테스트) |
+| Database | PostgreSQL (운영 · 컨테이너 · 리포지토리 테스트) · H2 (로컬 · 나머지 테스트) |
 | View | Thymeleaf 서버 렌더링 · Chart.js · 히트맵은 CSS Grid 자체 구현 |
 | Markdown | commonmark-java 렌더링 + jsoup 새니타이즈 |
 | Build · CI | Gradle · GitHub Actions · Docker Compose |
@@ -73,8 +73,10 @@ export APP_ADMIN_PASSWORD_HASH='$2y$10$...'
 - 검색은 LIKE — `%keyword%` 는 인덱스를 못 탄다. 기록 5,000건과 검색 응답 300ms 를 전환 기준으로
   잡아 두고 그때까지는 두기로 했다. 한국어 전문검색은 `pg_bigm` 같은 확장이 필요해, 올릴 곳이
   확장 설치를 허용하는지가 선행 조건이다
-- 테스트는 인메모리 H2 전용이라 PostgreSQL 방언 계약이 그물 밖이다. 실제로 검색 쿼리의
-  `lower(null)` 이 `bytea` 로 추론돼 목록 첫 화면이 통째로 500 이던 결함을 컨테이너에서 처음 만났다
+- 리포지토리 테스트는 실제 PostgreSQL 컨테이너 위에서 돈다. 인메모리 H2 로 두었다가 방언 결함을
+  두 번 놓쳤기 때문이다 — 검색 파라미터의 `lower(null)` 이 `bytea` 로 추론된 건과, 기간 필터의
+  파라미터 타입이 결정되지 않아 날짜를 넣은 검색이 전부 500 이던 건. 둘 다 H2 는 끝까지 초록이었고
+  뒤엣것은 배포된 채로 죽어 있었다. 대신 `./gradlew build` 에 도커 데몬이 필요해졌다
 - 공개 URL 이 없다 — 무료 상시가동 경로가 전부 결제 카드를 요구해서, 돌아간다는 근거를 위 화면
   이미지와 아래 실행 예시에 걸었다
 
@@ -94,7 +96,7 @@ resources/templates/  logs · stats · io · 공통 layout
 
 | 무엇을 | 어떻게 |
 |---|---|
-| 단위·통합 테스트 217개 | `./gradlew test --rerun-tasks` 25초 · 전부 통과 |
+| 단위·통합 테스트 222개 | `./gradlew test --rerun-tasks` 31초 · 전부 통과 · 리포지토리 17개는 PostgreSQL 컨테이너 위 |
 | 백업이 실제로 복구되는가 | 내보낸 ZIP 을 비운 DB 에 되넣어 원본과 일치 · 같은 ZIP 재업로드는 전건 건너뜀 (`MarkdownRoundTripTest`) |
 | 이미지가 PostgreSQL 위에서 뜨는가 | CI `image` 잡이 compose 로 띄워 앱 healthcheck 가 healthy 를 낼 때까지 기다린 뒤 `GET /logs` 200 확인 — 1분 26초 (run 31487631830) |
 | 실제 데이터로 화면이 차는가 | 커밋 이력에서 만든 마크다운 130개를 `/import` 업로드 — 추가 130 · 건너뜀 0 · 실패 0 |
