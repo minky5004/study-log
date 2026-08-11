@@ -9,8 +9,11 @@ import com.minky.studylog.domain.StudyLog;
 import com.minky.studylog.repository.projection.CategoryTotal;
 import com.minky.studylog.repository.projection.DailyTotal;
 import com.minky.studylog.repository.projection.StartTimeSlice;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import javax.sql.DataSource;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -20,15 +23,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
+/**
+ * 리포지토리는 <b>실제 PostgreSQL 위에서</b> 돈다. 근거는 {@link PostgresTestContainer}.
+ *
+ * <p>{@code Replace.NONE} 이 필요한 것은 {@code @DataJpaTest} 가 데이터소스를 내장 DB 로
+ * 갈아 끼우는 것을 기본으로 하기 때문 — 빼면 컨테이너는 뜨지만 아무도 접속하지 않는다.
+ */
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(PostgresTestContainer.class)
 @ActiveProfiles("test")
 class StudyLogRepositoryTest {
 
@@ -41,6 +54,21 @@ class StudyLogRepositoryTest {
     @Autowired StudyLogRepository studyLogRepository;
     @Autowired CategoryRepository categoryRepository;
     @Autowired TestEntityManager entityManager;
+    @Autowired DataSource dataSource;
+
+    /**
+     * 이 파일의 나머지 전부가 기대는 전제라 먼저 세운다. {@code test} 프로파일에는 H2 접속정보가
+     * 그대로 남아 있고 {@code Replace.NONE} 이 내장 DB 대체까지 껐으므로, {@code @Import} 가
+     * 빠지거나 부트 업그레이드로 {@code @ServiceConnection} 배선이 어긋나면 열일곱 개가 조용히
+     * H2 로 되돌아가 <b>초록인 채</b> 남는다 — 이 클래스를 옮긴 이유가 바로 그 초록이었다.
+     */
+    @Test
+    @DisplayName("실제 PostgreSQL 위에서 도는지부터 확인 — H2 로 되돌아가도 초록인 자리")
+    void runsOnRealPostgres() throws SQLException {
+        try (Connection connection = dataSource.getConnection()) {
+            assertThat(connection.getMetaData().getURL()).startsWith("jdbc:postgresql:");
+        }
+    }
 
     @Test
     @DisplayName("자정 넘김 세션이 저장 시점 계산값으로 저장")
@@ -178,6 +206,27 @@ class StudyLogRepositoryTest {
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31), PAGE);
 
         assertThat(found.getContent()).extracting(StudyLog::getTitle).containsExactly("대상");
+    }
+
+    /**
+     * 한쪽만 준 범위가 실제로 열린 구간으로 도는지 본다 — 위 조합 테스트는 두 경계를 다 채워
+     * 이 의미를 보지 않는다. 화면의 기간 칸 둘은 서로 없어도 되므로 이쪽이 더 흔한 형태다.
+     *
+     * <p>캐스트를 지키는 것은 이 테스트가 아니다. PostgreSQL 은 값이 아니라 SQL 문맥으로
+     * 파라미터 타입을 정하므로, 캐스트가 빠지면 경계를 채운 검색도 함께 죽는다.
+     */
+    @Test
+    @DisplayName("시작·종료 한쪽만 준 기간 검색")
+    void filtersByOpenEndedPeriod() {
+        saveLog("이른 날", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 7, 31));
+        saveLog("늦은 날", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 8, 10));
+        flushAndClear();
+
+        LocalDate august = LocalDate.of(2026, 8, 1);
+        assertThat(studyLogRepository.search(null, null, null, august, null, PAGE).getContent())
+                .extracting(StudyLog::getTitle).containsExactly("늦은 날");
+        assertThat(studyLogRepository.search(null, null, null, null, august, PAGE).getContent())
+                .extracting(StudyLog::getTitle).containsExactly("이른 날");
     }
 
     @Test
