@@ -24,7 +24,7 @@
 |---|---|
 | Language | Java 21 |
 | Framework | Spring Boot 4.1 · Spring Data JPA · Spring Security · Validation |
-| Database | PostgreSQL (운영 · 컨테이너 · 리포지토리 테스트) · H2 (로컬 · 나머지 테스트) · 스키마는 Flyway |
+| Database | PostgreSQL (운영 Neon · 컨테이너 · 리포지토리 테스트) · H2 (로컬 · 나머지 테스트) · 스키마는 Flyway |
 | View | Thymeleaf 서버 렌더링(별도 프론트엔드 빌드 없음) · Chart.js · 히트맵은 CSS Grid 자체 구현 |
 | Markdown | commonmark-java 렌더링 + jsoup 새니타이즈 |
 | Build · CI | Gradle · GitHub Actions · Docker Compose |
@@ -71,8 +71,8 @@ BCrypt 해시 아닌 평문 모두 부팅 실패.
 **감수한 것**
 
 - 검색은 LIKE — `%keyword%` 는 인덱스 미사용. 전환 기준은 기록 5,000건 · 검색 응답 300ms — 그때까지는
-  유지. 한국어에 맞는 `pg_bigm` 은 배포처 미지원 · 가용한 것은 3-gram 인 `pg_trgm` 뿐 — 두 글자
-  검색어에 약한 쪽 · 전환 시점에 색인 방식부터 다시 고를 자리
+  유지. 한국어에 맞는 `pg_bigm` 은 운영 DB(Neon) 미지원 · 가용한 것은 3-gram 인 `pg_trgm` 뿐 —
+  두 글자 검색어에 약한 쪽 · 전환 시점에 색인 방식부터 다시 고를 자리
 - 리포지토리 테스트는 실제 PostgreSQL 위 — 인메모리 H2 시절 방언 결함 두 건 통과. 검색
   파라미터 `lower(null)` 의 `bytea` 추론 · 기간 필터 파라미터 타입 미결정으로 날짜를 넣은 검색
   전건 500. 대가는 `./gradlew build` 의 도커 의존
@@ -95,8 +95,9 @@ resources/templates/  logs · stats · io · 공통 layout
 
 | 무엇을 | 어떻게 |
 |---|---|
-| 단위·통합 테스트 222개 | `./gradlew test --rerun-tasks` 35초 · 전부 통과 · 리포지토리 18개는 PostgreSQL 컨테이너 위 |
+| 단위·통합 테스트 222개 | `./gradlew test --rerun-tasks` 26초(3회 실측 26·26·28) · 전부 통과 · 리포지토리 18개는 PostgreSQL 컨테이너 위 — 편차의 몫은 그 컨테이너 기동 |
 | 백업의 실제 복구 여부 | 내보낸 ZIP 을 비운 DB 에 되넣어 원본과 일치 · 같은 ZIP 재업로드는 전건 건너뛰기 (`MarkdownRoundTripTest`) |
 | PostgreSQL 위 이미지 기동 여부 | CI `image` 잡이 compose 로 띄워 앱 healthcheck 가 healthy 를 낼 때까지 기다린 뒤 `GET /logs` 200 확인 — 1분 33초 (run 31493666543) |
 | 실제 데이터의 화면 반영 여부 | 커밋 이력에서 만든 마크다운 130개를 `/import` 업로드 — 추가 130 · 건너뜀 0 · 실패 0 |
-| 배포본의 기동·응답 | 무접속 18분 뒤 첫 요청 166초 · 이어진 요청 1.76초 — 빈 DB 에 Flyway V1 적용 후 `validate` 통과 · `/logs` `/stats` `/api/stats/*` 200 |
+| 배포본의 기동·응답 | 무접속 18분 뒤 첫 요청 166초 · 깨어난 직후 재요청 1.76초 · 데워진 뒤 0.13~1.18초 |
+| 배포 첫 부팅의 스키마 | 빈 DB 에 Flyway V1 적용 · `validate` 통과 — 이후 기록 130건 이관 · `/logs` `/stats` `/api/stats/*` 200 |
