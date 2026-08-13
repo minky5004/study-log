@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+    <!--
+      잔디 히트맵을 3x3 으로 줄인 것. 이 앱에서 한 눈에 알아보는 형태가 그것 하나다.
+
+      색은 app.css 의 hm-1 ~ hm-4 를 계산해 박은 값이다. 그쪽은 accent 를 panel 에 30·50·75·100%
+      로 섞고, 외부 SVG 는 문서의 CSS 변수를 받지 못해 hex 를 한 벌 더 갖는 수밖에 없다.
+      팔레트를 바꾸면 이 파일과 favicon.ico 를 같이 고친다.
+
+      왼쪽 위 한 칸만 빈칸(line 색) 으로 두어 격자가 규칙적인 무늬로 보이지 않게 한다.
+
+      주석에 CSS 변수를 var 표기로 적지 않는 것은 그 안의 붙임표 둘이 XML 주석을 깨기 때문 —
+      SVG 는 image/svg+xml 로 나가고 브라우저는 이것을 엄격한 XML 파서로 읽어, 한 글자만
+      어긋나도 아이콘이 통째로 렌더링되지 않는다. curl 은 그래도 200 을 준다
+    -->
+    <rect width="32" height="32" rx="7" fill="#14181c"/>
+
+    <rect x="5" y="5" width="6" height="6" rx="1.5" fill="#2b333b"/>
+    <rect x="13" y="5" width="6" height="6" rx="1.5" fill="#145b35"/>
+    <rect x="21" y="5" width="6" height="6" rx="1.5" fill="#0e813e"/>
+
+    <rect x="5" y="13" width="6" height="6" rx="1.5" fill="#145b35"/>
+    <rect x="13" y="13" width="6" height="6" rx="1.5" fill="#0e813e"/>
+    <rect x="21" y="13" width="6" height="6" rx="1.5" fill="#07b049"/>
+
+    <rect x="5" y="21" width="6" height="6" rx="1.5" fill="#0e813e"/>
+    <rect x="13" y="21" width="6" height="6" rx="1.5" fill="#07b049"/>
+    <rect x="21" y="21" width="6" height="6" rx="1.5" fill="#00e054"/>
+</svg>

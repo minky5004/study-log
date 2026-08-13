@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>문제가 생겼습니다 · study-log</title>
+</head>
+<body>
+<!--
+  없으면 스프링 기본 Whitelabel Error Page 가 공개 주소에 그대로 나간다. 4xx 는 만들어 두고
+  5xx 만 비워 두면 정작 더 나쁜 쪽이 손대지 않은 화면이 된다.
+
+  화면이 DB 를 건드리지 않는다 — 이 앱에서 5xx 가 나는 가장 그럴듯한 경로가 DB 접속이라,
+  오류 화면이 같은 곳에 닿으면 오류를 그리다 또 실패한다. 레이아웃의 로그인 여부 판정은
+  SecurityContext 만 읽어 여기서 안전하다.
+
+  사유를 적지 않는 것은 예외 메시지가 스택과 내부 구조를 흘리기 때문.
+
+  4xx 와 달리 본문에 "기록 목록으로" 버튼을 두지 않는다. DB 가 내려간 상황이 이 화면의 주된
+  경로인데 /logs 도 / 도 결국 DB 를 밟아, 본문 한가운데 놓인 버튼은 500 에서 500 으로 도는
+  고리를 권하는 셈이 된다. 실제로 통하는 행동은 시간을 두고 다시 여는 것 하나뿐이다.
+  상단 네비의 같은 링크는 남는다 — 모든 화면의 공통 자리라 여기서만 걷어내면 화면이
+  낯설어진다. 여기서 없앤 것은 링크가 아니라 눌러 보라는 권유다.
+-->
+<main class="container container-narrow">
+    <h1>문제가 생겼습니다</h1>
+    <p class="lead">잠시 뒤 다시 시도해 주세요.</p>
+</main>
+</body>
+</html>

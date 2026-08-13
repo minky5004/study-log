@@ -6,6 +6,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:replace="${title}">study-log</title>
+    <!--
+      두 벌을 두는 이유는 서로 다른 것을 막기 때문이다. SVG 는 크기별 png 를 쌓지 않고 탭 아이콘을
+      내주고, .ico 는 /favicon.ico 를 무조건 두드리는 쪽(크롤러 · 미리보기 봇 · 옛 사파리)이 없는
+      주소에 닿아 4xx 템플릿을 통째로 렌더링하는 것을 막는다. 선언만으로는 뒤엣것이 닫히지 않는다.
+      그림은 같고 .ico 는 SVG 를 옮겨 그린 것이라, 팔레트를 바꾸면 둘 다 고친다
+    -->
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link rel="icon" sizes="32x32" th:href="@{/favicon.ico}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
