@@ -6,6 +6,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:replace="${title}">study-log</title>
+    <!--
+      선언이 없으면 브라우저가 /favicon.ico 를 스스로 찾고, 없는 그 요청이 4xx 템플릿을 통째로
+      렌더링한다. SVG 한 장으로 두는 것은 크기별 png 를 쌓지 않기 위해서
+    -->
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
