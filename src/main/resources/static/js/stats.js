@@ -1,5 +1,8 @@
-// 통계 화면의 네 카드. 숫자는 전부 /api/stats/* 에서 받는다 — 조회 범위도 분야 색 배정도
-// 서버가 소유하므로 여기서 다시 정하지 않고 그리기만 한다.
+// 차트 카드. 숫자는 전부 /api/stats/* 에서 받는다 — 조회 범위도 분야 색 배정도 서버가
+// 소유하므로 여기서 다시 정하지 않고 그리기만 한다.
+//
+// 그리는 것은 통계 화면의 네 카드가 아니라 그 페이지에 실제로 있는 카드다. 홈은 이 파일을
+// 부르면서 잔디 하나만 두므로, 자리가 없는 카드는 조용히 건너뛴다.
 //
 // 빈 캔버스는 고장과 구별되지 않는다. 기록이 없을 때와 불러오지 못했을 때를 서로 다른 문구로
 // 남기는 것이 이 파일에서 가장 자주 밟히는 분기다.
@@ -47,6 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function card(name, url, render, emptyText = EMPTY_TEXT) {
     const box = boxOf(name);
+    // 그 페이지에 없는 카드. 여기서 멈추지 않으면 자리도 없는 그림을 위해 요청이 나간다
+    if (!box) {
+        return;
+    }
     try {
         if (!render(box, await fetchJson(url))) {
             note(box, emptyText);
@@ -61,9 +68,15 @@ function boxOf(name) {
     return document.querySelector(`[data-chart="${name}"]`);
 }
 
-/** 카드가 어느 구간을 그렸는지. 넷의 범위가 서로 달라 적지 않으면 같은 창으로 읽힌다 */
+/**
+ * 카드가 어느 구간을 그렸는지. 넷의 범위가 서로 달라 적지 않으면 같은 창으로 읽힌다.
+ * 범위 자리는 카드와 따로 놓이므로 카드만 있고 이 자리가 없는 화면도 성립한다.
+ */
 function showRange(name, text) {
-    document.querySelector(`[data-range="${name}"]`).textContent = text;
+    const target = document.querySelector(`[data-range="${name}"]`);
+    if (target) {
+        target.textContent = text;
+    }
 }
 
 async function fetchJson(url) {
@@ -75,6 +88,12 @@ async function fetchJson(url) {
 }
 
 function note(box, text) {
+    // Chart.js 가 없을 때 세 카드를 한꺼번에 훑는 자리가 있어, 없는 카드가 여기까지 온다.
+    // 홈은 CDN 을 아예 부르지 않으므로 그 경로가 늘 지나간다
+    if (!box) {
+        return;
+    }
+
     const paragraph = document.createElement('p');
     paragraph.className = 'card-note';
     paragraph.textContent = text;
