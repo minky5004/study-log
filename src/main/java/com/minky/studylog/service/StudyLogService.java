@@ -11,11 +11,22 @@ import java.util.Locale;
 import java.util.function.UnaryOperator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StudyLogService {
+
+    /**
+     * 최신순. 목록 화면과 홈이 같은 값을 가리켜야 "최근" 이 두 뜻으로 갈리지 않는다 —
+     * 홈에 뜬 다섯 건이 목록 첫 다섯 건과 다르면 어느 쪽이 맞는지 읽는 사람이 정해야 한다.
+     *
+     * <p>{@code id} 를 마지막 키로 두는 것은 날짜·시각이 같은 기록의 순서가 조회마다 흔들리지
+     * 않게 하기 위해서 — 목록에서는 그 흔들림이 페이지 경계에서 같은 기록의 중복·누락이 된다.
+     */
+    public static final Sort LATEST_FIRST =
+            Sort.by(Sort.Direction.DESC, "studyDate", "startTime", "id");
 
     private final StudyLogRepository studyLogRepository;
     private final CategoryService categoryService;

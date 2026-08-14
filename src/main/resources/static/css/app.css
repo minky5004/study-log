@@ -191,6 +191,51 @@ h1 {
     color: var(--bg);
 }
 
+/* ── 홈 — 첫 화면 ───────────────────────────────── */
+
+/* 반반이 아닌 것은 담는 것이 다르기 때문 — 왼쪽은 시각·제목·태그·요약이 한 줄에 서는 세션 행,
+   오른쪽은 한 줄짜리 할 일. 반반이면 세션 제목만 두 줄로 접힌다 */
+.home-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* 칸을 카드로 감싸지 않는다 — .day 와 .plan 이 이미 제 배경을 가져 상자 안 상자가 된다 */
+.home-panel {
+    min-width: 0;
+}
+
+.home-panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.home-panel-title {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+}
+
+.home-panel-more {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.home-panel-more:hover {
+    color: var(--accent);
+}
+
+/* 목록 화면의 빈 문구는 화면 한가운데를 비우는 여백이라 칸 하나 안에서는 과하다 */
+.home-empty {
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+}
+
 /* ── 목록 — 하루가 상자 하나 ─────────────────────── */
 
 .empty {
@@ -1026,6 +1071,11 @@ a.hm-cell:hover {
 
     /* 반 폭 카드 둘은 여기서 세로로 선다 — 도넛 범례가 조각보다 넓어지는 폭 */
     .stats-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* 홈의 두 칸도 같이 선다 — 세션 행의 시각·제목·소요 시간 셋이 반 폭에서 겹치는 폭 */
+    .home-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 

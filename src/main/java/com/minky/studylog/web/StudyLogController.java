@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -82,9 +81,8 @@ public class StudyLogController {
             @ModelAttribute("cond") StudyLogSearchCond cond, Model model) {
         // 음수 페이지는 PageRequest 가 예외로 거부한다 — 주소창 조작이 500 이 되지 않게 접는다
         int requested = Math.max(0, page);
-        Page<StudyLogListItem> logs = studyLogService.findAll(cond, PageRequest.of(requested, PAGE_SIZE,
-                // id 를 마지막 정렬 키로 둬야 날짜·시각이 같은 기록의 순서가 페이지마다 흔들리지 않는다
-                Sort.by(Sort.Direction.DESC, "studyDate", "startTime", "id")));
+        Page<StudyLogListItem> logs = studyLogService.findAll(cond,
+                PageRequest.of(requested, PAGE_SIZE, StudyLogService.LATEST_FIRST));
 
         if (requested > 0 && requested >= logs.getTotalPages()) {
             return "redirect:" + logsUrl(cond, Math.max(0, logs.getTotalPages() - 1));
