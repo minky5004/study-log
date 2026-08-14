@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>계획 · study-log</title>
+</head>
+<body>
+<main class="container container-narrow">
+    <div class="page-head">
+        <div>
+            <h1>계획</h1>
+            <p class="lead" th:unless="${pending.isEmpty()}">
+                <span th:text="${pending.size()}">0</span>개 남음
+            </p>
+        </div>
+    </div>
+
+    <!-- 추가 폼을 목록 안에 두므로 쓰기 화면이 따로 없다. 비로그인에게는 감춘다 —
+         눌러야 로그인 화면이 나오는 입력창은 안내가 아니라 막다른 길 -->
+    <form class="plan-add" method="post" th:object="${form}" th:action="@{/plans}"
+          sec:authorize="isAuthenticated()">
+        <div class="plan-add-row">
+            <label class="field plan-add-title">
+                <span class="field-sublabel">할 일</span>
+                <input type="text" th:field="*{title}" placeholder="앞으로 할 공부 한 줄">
+            </label>
+            <label class="field">
+                <span class="field-sublabel">우선순위</span>
+                <select th:field="*{priority}">
+                    <option th:each="p : ${priorities}" th:value="${p}" th:text="${p.label}">보통</option>
+                </select>
+            </label>
+            <button class="button" type="submit">추가</button>
+        </div>
+        <label class="field">
+            <span class="field-sublabel">한 줄 설명 (선택)</span>
+            <input type="text" th:field="*{note}" placeholder="왜 · 어디까지">
+        </label>
+        <span class="field-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">오류</span>
+        <span class="field-error" th:if="${#fields.hasErrors('note')}" th:errors="*{note}">오류</span>
+    </form>
+
+    <p class="empty" th:if="${pending.isEmpty() and done.isEmpty()}">
+        아직 적어 둔 계획이 없습니다. 앞으로 할 공부를 한 줄로 남겨 두세요.
+    </p>
+
+    <ol class="plan-list" th:unless="${pending.isEmpty()}">
+        <li class="plan" th:each="plan : ${pending}"
+            th:classappend="'prio-' + ${plan.priority.name().toLowerCase()}">
+            <!-- 체크는 상태를 바꾸므로 링크가 아니라 폼. 스크립트 없이 버튼 자체가 제출한다 -->
+            <form method="post" th:action="@{/plans/{id}/toggle(id=${plan.id})}"
+                  sec:authorize="isAuthenticated()">
+                <button class="plan-check" type="submit" title="완료로 표시" aria-label="완료로 표시"></button>
+            </form>
+            <span class="plan-check plan-check-locked" sec:authorize="isAnonymous()" aria-hidden="true"></span>
+
+            <div class="plan-body">
+                <span class="plan-title" th:text="${plan.title}">할 일</span>
+                <span class="plan-note" th:if="${plan.note}" th:text="${plan.note}">한 줄 설명</span>
+            </div>
+
+            <!-- 보통은 배지를 달지 않는다. 셋 다 붙이면 무엇이 급한지가 사라진다 -->
+            <span class="plan-priority" th:unless="${plan.priority.name() == 'NORMAL'}"
+                  th:text="${plan.priority.label}">높음</span>
+
+            <form method="post" th:action="@{/plans/{id}/delete(id=${plan.id})}"
+                  sec:authorize="isAuthenticated()">
+                <button class="link-button plan-delete" type="submit"
+                        title="삭제" aria-label="삭제">지움</button>
+            </form>
+        </li>
+    </ol>
+
+    <section class="plan-done-section" th:unless="${done.isEmpty()}">
+        <h2 class="plan-done-head">해치운 것 <span th:text="${done.size()}">0</span></h2>
+        <ol class="plan-list plan-list-done">
+            <li class="plan plan-done" th:each="plan : ${done}">
+                <form method="post" th:action="@{/plans/{id}/toggle(id=${plan.id})}"
+                      sec:authorize="isAuthenticated()">
+                    <button class="plan-check plan-check-on" type="submit"
+                            title="되돌리기" aria-label="되돌리기"></button>
+                </form>
+                <span class="plan-check plan-check-on plan-check-locked"
+                      sec:authorize="isAnonymous()" aria-hidden="true"></span>
+
+                <div class="plan-body">
+                    <span class="plan-title" th:text="${plan.title}">할 일</span>
+                    <span class="plan-note" th:if="${plan.note}" th:text="${plan.note}">한 줄 설명</span>
+                </div>
+
+                <time class="plan-completed" th:datetime="${plan.completedAt}"
+                      th:text="${#temporals.format(plan.completedAt, 'M월 d일')}">8월 14일</time>
+
+                <form method="post" th:action="@{/plans/{id}/delete(id=${plan.id})}"
+                      sec:authorize="isAuthenticated()">
+                    <button class="link-button plan-delete" type="submit"
+                            title="삭제" aria-label="삭제">지움</button>
+                </form>
+            </li>
+        </ol>
+    </section>
+</main>
+</body>
+</html>
