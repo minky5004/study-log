@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  하루가 상자 하나인 목록. 기록 목록과 홈의 "최근 기록" 이 같은 것을 그린다 — 마크업을 양쪽에
+  복사하면 분야 점·태그·요약처럼 손이 자주 가는 자리가 한쪽만 바뀐다.
+  받는 것은 StudyLogDay 목록이고, 몇 건을 실을지와 어떤 순서인지는 부르는 쪽이 정한다.
+  레이아웃이 ~{::main} 만 가져가므로 include 하는 자리는 각 화면의 main 안이어야 한다.
+-->
+<th:block th:fragment="days(days)">
+    <ol class="day-list">
+        <li class="day" th:each="day : ${days}">
+            <div class="day-head">
+                <time class="day-date" th:datetime="${day.date}"
+                      th:text="${day.dateText()}">8월 6일 (목)</time>
+                <span class="day-total" th:text="${day.totalText()}">2시간 50분</span>
+            </div>
+
+            <ol class="session-list">
+                <li class="session" th:each="log : ${day.logs()}">
+                    <div class="session-head">
+                        <time class="session-time" th:datetime="${log.startTime}"
+                              th:text="${#temporals.format(log.startTime, 'HH:mm')}">14:00</time>
+                        <h2 class="session-title">
+                            <a th:href="@{/logs/{id}(id=${log.id})}" th:text="${log.title}">제목</a>
+                        </h2>
+                        <span class="session-duration" th:unless="${day.singleSession()}"
+                              th:text="${log.durationText()}">1시간 20분</span>
+                    </div>
+
+                    <div class="session-meta">
+                        <span class="session-category" th:classappend="'cat-' + ${log.categoryColorIndex()}"
+                              th:text="${log.categoryName}">CS</span>
+                        <span class="session-tag" th:each="tag : ${log.tags()}"
+                              th:text="'#' + ${tag}">#큐</span>
+                    </div>
+
+                    <p class="session-summary" th:if="${!#strings.isEmpty(log.summary)}"
+                       th:text="${log.summary}">요약</p>
+                </li>
+            </ol>
+        </li>
+    </ol>
+</th:block>
+</body>
+</html>
