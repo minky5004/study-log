@@ -35,6 +35,7 @@ class SecurityAccessTest {
     @DisplayName("조회는 비로그인도 허용 — 보여 주는 것이 이 서비스의 목적")
     void readIsPublic() throws Exception {
         mockMvc.perform(get("/logs")).andExpect(status().isOk());
+        mockMvc.perform(get("/plans")).andExpect(status().isOk());
         mockMvc.perform(get("/stats")).andExpect(status().isOk());
     }
 
@@ -64,6 +65,21 @@ class SecurityAccessTest {
         mockMvc.perform(get("/logs/1/edit")).andExpect(redirectedUrl("/login"));
         mockMvc.perform(post("/logs/1").with(csrf())).andExpect(redirectedUrl("/login"));
         mockMvc.perform(post("/logs/1/delete").with(csrf()))
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    /**
+     * 계획은 쓰기 화면이 목록 안에 있어 경로 규칙이 하나도 없다 — 막는 것이 전적으로
+     * 메서드 규칙이라, 그 규칙이 풀리면 여기서만 드러난다.
+     */
+    @Test
+    @DisplayName("비로그인 계획 추가 · 체크 · 삭제 차단")
+    void planWritesRequireLogin() throws Exception {
+        mockMvc.perform(post("/plans").with(csrf()).param("title", "x"))
+                .andExpect(redirectedUrl("/login"));
+        mockMvc.perform(post("/plans/1/toggle").with(csrf()))
+                .andExpect(redirectedUrl("/login"));
+        mockMvc.perform(post("/plans/1/delete").with(csrf()))
                 .andExpect(redirectedUrl("/login"));
     }
 
