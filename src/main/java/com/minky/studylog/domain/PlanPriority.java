@@ -11,18 +11,29 @@ package com.minky.studylog.domain;
  */
 public enum PlanPriority {
 
-    HIGH("높음"),
-    NORMAL("보통"),
-    LOW("낮음");
+    HIGH("높음", "prio-high"),
+    NORMAL("보통", "prio-normal"),
+    LOW("낮음", "prio-low");
 
     private final String label;
+    private final String styleClass;
 
-    PlanPriority(String label) {
+    PlanPriority(String label, String styleClass) {
         this.label = label;
+        this.styleClass = styleClass;
     }
 
     /** 화면 표기. 템플릿에서 세 갈래 분기를 만들지 않으려고 여기에 둔다. */
     public String getLabel() {
         return label;
+    }
+
+    /**
+     * 우선순위 띠의 CSS 클래스. 상수 이름에서 파생하지 않고 적어 두는 것은 대소문자 변환이
+     * 로캘을 타기 때문 — 터키어 로캘에서 {@code "HIGH".toLowerCase()} 는 {@code hıgh} 라
+     * 규칙이 어긋나고, 그 실패는 예외가 아니라 <b>띠 색이 사라지는 것</b>으로만 드러난다.
+     */
+    public String getStyleClass() {
+        return styleClass;
     }
 }

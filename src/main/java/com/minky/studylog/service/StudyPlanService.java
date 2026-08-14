@@ -44,6 +44,12 @@ public class StudyPlanService {
         return studyPlanRepository.findByDoneFalse().stream().sorted(PENDING_ORDER).toList();
     }
 
+    /**
+     * <b>미완료와 달리 여기에는 천장이 없다.</b> 할 일은 해치우면 줄지만 완료는 쌓이기만 하고,
+     * 자동 정리도 보관 상한도 두지 않기로 했다. 그래도 자르지 않는 것은 잘린 목록이 지운 것과
+     * 구별되지 않기 때문 — "해치운 것" 이 조용히 사라지면 이 절을 남긴 이유가 없어진다.
+     * 길어지면 사용자가 지운다. 그 손이 감당 못 할 만큼 쌓이는 날 페이징을 다시 본다.
+     */
     @Transactional(readOnly = true)
     public List<StudyPlan> findDone() {
         return studyPlanRepository.findByDoneTrueOrderByCompletedAtDesc();

@@ -18,6 +18,7 @@ import com.minky.studylog.domain.PlanPriority;
 import com.minky.studylog.domain.StudyPlan;
 import com.minky.studylog.service.StudyPlanNotFoundException;
 import com.minky.studylog.service.StudyPlanService;
+import java.time.LocalDate;
 import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +49,44 @@ class StudyPlanControllerTest {
         mockMvc.perform(get("/plans"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("plans/index"))
-                .andExpect(content().string(Matchers.containsString("공부 메모장")));
+                .andExpect(content().string(Matchers.allOf(
+                        Matchers.containsString("공부 메모장"),
+                        // 체크 자리는 비로그인에게도 남는다 — 빠지면 줄마다 들여쓰기가 어긋난다
+                        Matchers.containsString("plan-check-locked"),
+                        Matchers.not(Matchers.containsString("/toggle")))));
+    }
+
+    /**
+     * 완료 절은 스텁이 빈 목록이면 통째로 렌더링되지 않는다 — 날짜 포맷과 취소선 마크업이
+     * 어느 테스트에서도 돌지 않은 채 남고, 표현식 오류가 상단 네비에 걸린 화면의 500 으로만
+     * 드러난다. 여기서 한 번 그려 둔다.
+     */
+    @Test
+    @DisplayName("완료 항목은 취소선 절에 연월일과 함께")
+    void rendersDoneSection() throws Exception {
+        StudyPlan done = new StudyPlan("옵시디언 활용법", "왜 · 어디까지", PlanPriority.LOW);
+        done.toggle();
+        given(studyPlanService.findPending()).willReturn(List.of());
+        given(studyPlanService.findDone()).willReturn(List.of(done));
+
+        mockMvc.perform(get("/plans"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(Matchers.allOf(
+                        Matchers.containsString("plan-done-section"),
+                        Matchers.containsString("plan-check-on"),
+                        Matchers.containsString(String.valueOf(LocalDate.now().getYear())))));
+    }
+
+    /** 우선순위 띠 클래스가 템플릿의 문자열 조립이 아니라 enum 에서 온다 — 로캘을 타지 않게. */
+    @Test
+    @DisplayName("우선순위 띠 클래스는 enum 이 소유")
+    void rendersPriorityStyleClass() throws Exception {
+        given(studyPlanService.findPending()).willReturn(List.of(
+                new StudyPlan("공부 메모장", null, PlanPriority.HIGH)));
+        given(studyPlanService.findDone()).willReturn(List.of());
+
+        mockMvc.perform(get("/plans"))
+                .andExpect(content().string(Matchers.containsString("prio-high")));
     }
 
     /**
@@ -88,6 +126,27 @@ class StudyPlanControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("plans/index"))
                 .andExpect(model().attributeExists("pending", "done", "priorities"));
+
+        then(studyPlanService).should(never()).create(any());
+    }
+
+    /**
+     * {@code select} 가 값을 좁히므로 화면으로는 오지 않는 입력이다. 그래도 화면에 오류 자리를
+     * 두는 것은, 없으면 저장도 오류도 없이 200 이 나가 사용자가 추가된 것으로 읽기 때문.
+     */
+    @Test
+    @WithMockUser
+    @DisplayName("목록 밖 우선순위는 화면에 오류로 — 조용히 200 으로 되돌아가지 않게")
+    void showsErrorForUnknownPriority() throws Exception {
+        given(studyPlanService.findPending()).willReturn(List.of());
+        given(studyPlanService.findDone()).willReturn(List.of());
+
+        mockMvc.perform(post("/plans").with(csrf())
+                        .param("title", "공부 메모장")
+                        .param("priority", "URGENT"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("plans/index"))
+                .andExpect(content().string(Matchers.containsString("field-error")));
 
         then(studyPlanService).should(never()).create(any());
     }

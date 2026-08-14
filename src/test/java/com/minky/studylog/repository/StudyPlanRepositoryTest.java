@@ -130,10 +130,19 @@ class StudyPlanRepositoryTest {
                 .getSingleResult();
     }
 
+    /**
+     * <b>무조건 되돌린다.</b> 자동 커밋 그대로 두면 위 셋은 "던지지 않을 때만" 커밋되는데,
+     * 그 경우가 바로 제약이 사라진 날이다 — 남은 행이 컨테이너를 함께 쓰는
+     * {@link StudyLogRepositoryTest} 까지 흘러가 제약 하나의 회귀가 엉뚱한 곳의 실패로 번진다.
+     */
     private void executeOnOwnConnection(String sql) throws SQLException {
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
-            statement.execute(sql);
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (Statement statement = connection.createStatement()) {
+                statement.execute(sql);
+            } finally {
+                connection.rollback();
+            }
         }
     }
 }

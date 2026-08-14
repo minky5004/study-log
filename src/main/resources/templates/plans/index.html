@@ -39,6 +39,10 @@
         </label>
         <span class="field-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">오류</span>
         <span class="field-error" th:if="${#fields.hasErrors('note')}" th:errors="*{note}">오류</span>
+        <!-- select 가 값을 좁히므로 평소에는 뜨지 않는다. 없으면 목록 밖 값이 든 POST 가
+             오류도 저장도 없이 200 으로 되돌아와 사용자가 추가된 것으로 읽는다 -->
+        <span class="field-error" th:if="${#fields.hasErrors('priority')}"
+              th:errors="*{priority}">우선순위 값이 올바르지 않습니다</span>
     </form>
 
     <p class="empty" th:if="${pending.isEmpty() and done.isEmpty()}">
@@ -47,7 +51,7 @@
 
     <ol class="plan-list" th:unless="${pending.isEmpty()}">
         <li class="plan" th:each="plan : ${pending}"
-            th:classappend="'prio-' + ${plan.priority.name().toLowerCase()}">
+            th:classappend="${plan.priority.styleClass}">
             <!-- 체크는 상태를 바꾸므로 링크가 아니라 폼. 스크립트 없이 버튼 자체가 제출한다 -->
             <form method="post" th:action="@{/plans/{id}/toggle(id=${plan.id})}"
                   sec:authorize="isAuthenticated()">
@@ -89,8 +93,10 @@
                     <span class="plan-note" th:if="${plan.note}" th:text="${plan.note}">한 줄 설명</span>
                 </div>
 
+                <!-- 연도를 적는다. 이 목록은 잘리지도 자동으로 비워지지도 않아, 해가 바뀌면
+                     작년 오늘과 올해 오늘이 같은 글자가 된다 -->
                 <time class="plan-completed" th:datetime="${plan.completedAt}"
-                      th:text="${#temporals.format(plan.completedAt, 'M월 d일')}">8월 14일</time>
+                      th:text="${#temporals.format(plan.completedAt, 'yyyy. M. d.')}">2026. 8. 14.</time>
 
                 <form method="post" th:action="@{/plans/{id}/delete(id=${plan.id})}"
                       sec:authorize="isAuthenticated()">
