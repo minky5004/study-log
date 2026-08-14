@@ -69,8 +69,13 @@ class HomeControllerTest {
                 Matchers.not(Matchers.containsString("chart.umd")))));
     }
 
+    /**
+     * 하루 합계를 빼는 것이 판단이라 여기서 못박는다. 홈은 건수로 자르므로 마지막 상자의 합이
+     * 그날 전체가 아닌데, 바로 위 잔디는 같은 날의 진짜 합을 말한다 — 한 화면에서 두 숫자가
+     * 어긋난다. 대신 세션 하나짜리 날에도 소요 시간을 적어 시간 정보 자체는 남긴다.
+     */
     @Test
-    @DisplayName("최근 기록은 날짜 상자로 · 계획은 미완료만")
+    @DisplayName("최근 기록은 날짜 상자로 · 하루 합계 없이 세션 소요 시간만")
     void showsRecentLogsAndPendingPlans() throws Exception {
         given(studyLogService.findAll(any(), any())).willReturn(new PageImpl<>(List.of(
                 new StudyLogListItem(1L, "트랜잭션 격리 수준", LocalDate.of(2026, 8, 3),
@@ -82,6 +87,10 @@ class HomeControllerTest {
         mockMvc.perform(get("/")).andExpect(content().string(Matchers.allOf(
                 Matchers.containsString("트랜잭션 격리 수준"),
                 Matchers.containsString("8월 3일 (월)"),
+                Matchers.not(Matchers.containsString("day-total")),
+                // 그날 세션이 하나뿐이라 목록 화면이라면 생략됐을 자리
+                Matchers.containsString("session-duration"),
+                Matchers.containsString("2시간"),
                 Matchers.containsString("공부 메모장"),
                 Matchers.containsString("prio-high"))));
     }

@@ -37,10 +37,10 @@
                 <h2 class="home-panel-title">최근 기록</h2>
                 <a class="home-panel-more" th:href="@{/logs}">전체 보기</a>
             </div>
-            <p class="empty home-empty" th:if="${days.isEmpty()}">
+            <p class="empty" th:if="${days.isEmpty()}">
                 아직 기록이 없습니다.
             </p>
-            <th:block th:replace="~{fragments/day-list :: days(${days})}"></th:block>
+            <th:block th:replace="~{fragments/day-list :: days(${days}, false)}"></th:block>
         </section>
 
         <section class="home-panel">
@@ -48,7 +48,7 @@
                 <h2 class="home-panel-title">앞으로 할 공부</h2>
                 <a class="home-panel-more" th:href="@{/plans}">전체 보기</a>
             </div>
-            <p class="empty home-empty" th:if="${plans.isEmpty()}">
+            <p class="empty" th:if="${plans.isEmpty()}">
                 적어 둔 계획이 없습니다.
             </p>
             <!-- 체크·삭제는 계획 화면에만 둔다. 상태를 바꾸는 자리가 둘이면 어느 쪽이 목록의

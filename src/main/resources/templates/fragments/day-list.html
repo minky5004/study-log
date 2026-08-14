@@ -5,15 +5,21 @@
   하루가 상자 하나인 목록. 기록 목록과 홈의 "최근 기록" 이 같은 것을 그린다 — 마크업을 양쪽에
   복사하면 분야 점·태그·요약처럼 손이 자주 가는 자리가 한쪽만 바뀐다.
   받는 것은 StudyLogDay 목록이고, 몇 건을 실을지와 어떤 순서인지는 부르는 쪽이 정한다.
+
+  standalone 은 이 목록이 그 화면의 주인인가다. 주인이 아닌 쪽(홈)은 앞에서 건수로 자르고
+  칸 제목 아래에 들어가므로, 하루 합계와 제목 단계가 함께 달라진다.
   레이아웃이 ~{::main} 만 가져가므로 include 하는 자리는 각 화면의 main 안이어야 한다.
 -->
-<th:block th:fragment="days(days)">
+<th:block th:fragment="days(days, standalone)">
     <ol class="day-list">
         <li class="day" th:each="day : ${days}">
             <div class="day-head">
                 <time class="day-date" th:datetime="${day.date}"
                       th:text="${day.dateText()}">8월 6일 (목)</time>
-                <span class="day-total" th:text="${day.totalText()}">2시간 50분</span>
+                <!-- 건수로 자르는 쪽에서는 마지막 상자의 합이 그날 전체가 아니다. 홈에서는 바로
+                     위 잔디가 같은 날의 진짜 합을 말하므로 두 숫자가 대놓고 어긋난다 -->
+                <span class="day-total" th:if="${standalone}"
+                      th:text="${day.totalText()}">2시간 50분</span>
             </div>
 
             <ol class="session-list">
@@ -21,10 +27,14 @@
                     <div class="session-head">
                         <time class="session-time" th:datetime="${log.startTime}"
                               th:text="${#temporals.format(log.startTime, 'HH:mm')}">14:00</time>
-                        <h2 class="session-title">
+                        <!-- 홈에서는 칸 제목(h2) 아래로 들어가 한 단 내려간다. 태그를 바꾸는 대신
+                             aria-level 로 알리는 것은 두 화면이 같은 글자 크기를 써야 하기 때문 -->
+                        <h2 class="session-title" th:attr="aria-level=${standalone ? 2 : 3}">
                             <a th:href="@{/logs/{id}(id=${log.id})}" th:text="${log.title}">제목</a>
                         </h2>
-                        <span class="session-duration" th:unless="${day.singleSession()}"
+                        <!-- 하루 합계를 감춘 화면에서는 세션이 하나여도 적는다 — 겹칠 숫자가 없다 -->
+                        <span class="session-duration"
+                              th:unless="${standalone and day.singleSession()}"
                               th:text="${log.durationText()}">1시간 20분</span>
                     </div>
 
