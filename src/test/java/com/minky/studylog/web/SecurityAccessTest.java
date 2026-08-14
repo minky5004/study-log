@@ -34,6 +34,7 @@ class SecurityAccessTest {
     @Test
     @DisplayName("조회는 비로그인도 허용 — 보여 주는 것이 이 서비스의 목적")
     void readIsPublic() throws Exception {
+        mockMvc.perform(get("/")).andExpect(status().isOk());
         mockMvc.perform(get("/logs")).andExpect(status().isOk());
         mockMvc.perform(get("/plans")).andExpect(status().isOk());
         mockMvc.perform(get("/stats")).andExpect(status().isOk());

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout :: page(~{::title}, ~{::main})}">
+<head>
+    <title>study-log</title>
+</head>
+<body>
+<!-- 통계의 container-wide 는 도넛 범례와 24칸 막대 때문이다. 잔디 53주는 기본 폭에 들어간다 -->
+<main class="container">
+    <div class="page-head">
+        <div>
+            <h1>study-log</h1>
+            <p class="lead">공부 세션을 기록하고 통계로 보는 로그북</p>
+        </div>
+        <div class="page-actions" sec:authorize="isAuthenticated()">
+            <a class="button" th:href="@{/logs/new}">새 기록</a>
+        </div>
+    </div>
+
+    <!-- 넷 중 잔디만 둔다. 나머지 셋은 Chart.js 가 필요하고, 홈이 통계 화면과 겹치면 둘 다
+         존재 이유를 잃는다 — 홈은 요약과 진입점, 파고드는 것은 통계 -->
+    <section class="card">
+        <div class="card-head">
+            <div>
+                <h2 class="card-title">일별 기록</h2>
+                <p class="card-range" data-range="heatmap"></p>
+            </div>
+            <a class="button button-quiet button-small" th:href="@{/stats}">통계 전체</a>
+        </div>
+        <div class="heatmap-box" data-chart="heatmap"></div>
+    </section>
+
+    <div class="home-grid">
+        <section class="home-panel">
+            <div class="home-panel-head">
+                <h2 class="home-panel-title">최근 기록</h2>
+                <a class="home-panel-more" th:href="@{/logs}">전체 보기</a>
+            </div>
+            <p class="empty" th:if="${days.isEmpty()}">
+                아직 기록이 없습니다.
+            </p>
+            <th:block th:replace="~{fragments/day-list :: days(${days}, false)}"></th:block>
+        </section>
+
+        <section class="home-panel">
+            <div class="home-panel-head">
+                <h2 class="home-panel-title">앞으로 할 공부</h2>
+                <a class="home-panel-more" th:href="@{/plans}">전체 보기</a>
+            </div>
+            <p class="empty" th:if="${plans.isEmpty()}">
+                적어 둔 계획이 없습니다.
+            </p>
+            <!-- 체크·삭제는 계획 화면에만 둔다. 상태를 바꾸는 자리가 둘이면 어느 쪽이 목록의
+                 주인인지 갈리고, 여기서 지운 것이 저기서 사라진 것으로 읽힌다 -->
+            <ol class="plan-list" th:unless="${plans.isEmpty()}">
+                <li class="plan" th:each="plan : ${plans}"
+                    th:classappend="${plan.priority.styleClass}">
+                    <div class="plan-body">
+                        <span class="plan-title" th:text="${plan.title}">할 일</span>
+                        <span class="plan-note" th:if="${plan.note}" th:text="${plan.note}">한 줄 설명</span>
+                    </div>
+                    <span class="plan-priority" th:unless="${plan.priority.name() == 'NORMAL'}"
+                          th:text="${plan.priority.label}">높음</span>
+                </li>
+            </ol>
+        </section>
+    </div>
+
+    <!-- Chart.js CDN 을 부르지 않는다. 잔디는 CSS Grid 라 스크립트가 CDN 없이 그린다 -->
+    <script th:src="@{/js/stats.js}" defer></script>
+</main>
+</body>
+</html>
