@@ -11,7 +11,7 @@
 좁히기 불가 · 파일 목록만으로 꾸준함 확인 불가. DB 이관으로 검색·통계 확보. 그 대가로 잃을 뻔한
 파일 형식은 **마크다운 재내보내기로 회수** — 옵시디언 vault 에서 그대로 열람.
 
-![검색에서 상세, 통계까지](docs/screenshots/demo.gif)
+![홈에서 검색, 상세, 통계까지](docs/screenshots/demo.gif)
 
 ![통계 — 일별 잔디 · 주간 추이 · 분야별 · 시간대](docs/screenshots/stats.png)
 
@@ -78,6 +78,9 @@ BCrypt 해시 아닌 평문 모두 부팅 실패.
   전건 500. 대가는 `./gradlew build` 의 도커 의존
 - 무료 티어 콜드스타트 166초 — 카드 없는 상시가동 경로 부재가 전제. 그중 앱 부팅은 44.7초 ·
   나머지 121초는 인스턴스 재배치 · DB 웨이크업 몫 — 부팅 단축만으로는 체감 불변
+- 공부 계획 체크리스트는 기록과 무연결 — 계획 대비 실제를 통계에 붙일 여지를 버린 자리. 대가는
+  "TODO 앱" 으로 읽힐 여지 · 방어는 배치뿐 — 첫 화면 주인공이 아닌 탭 하나 · 홈에서는 최근 기록
+  옆 칸 하나
 
 ## 구조
 
@@ -88,14 +91,14 @@ service/              CRUD · 분야/태그 정규화 · 통계 집계 · 마크
 service/export/       기록 → YAML 프론트매터 마크다운 ZIP
 service/importer/     마크다운 ZIP → 기록 (노트 하나가 트랜잭션 하나)
 web/                  컨트롤러 · 폼 DTO · 통계 JSON(/api/stats)
-resources/templates/  home · logs · stats · plans · io · 공통 layout · 날짜 상자 프래그먼트
+resources/templates/  home · logs · stats · plans · io · 공통 layout · 프래그먼트
 ```
 
 ## 검증
 
 | 무엇을 | 어떻게 |
 |---|---|
-| 단위·통합 테스트 256개 | `./gradlew test --rerun-tasks` 24초(3회 실측 37·24·24) · 전부 통과 · 리포지토리 24개는 PostgreSQL 컨테이너 위 — 편차의 몫은 그 컨테이너 기동 |
+| 단위·통합 테스트 256개 | `./gradlew test --rerun-tasks` 24초(3회 실측 24·24·23) · 전부 통과 · 리포지토리 24개는 PostgreSQL 컨테이너 위 — 도커 데몬이 뜬 상태 기준 · 데몬 콜드 기동에서는 첫 회 37초 |
 | 백업의 실제 복구 여부 | 내보낸 ZIP 을 비운 DB 에 되넣어 원본과 일치 · 같은 ZIP 재업로드는 전건 건너뛰기 (`MarkdownRoundTripTest`) |
 | PostgreSQL 위 이미지 기동 여부 | CI `image` 잡이 compose 로 띄워 앱 healthcheck 가 healthy 를 낼 때까지 기다린 뒤 `/` `/logs` 200 확인 — 1분 32초 (run 31811431653) |
 | 실제 데이터의 화면 반영 여부 | 커밋 이력에서 만든 마크다운 130개를 `/import` 업로드 — 추가 130 · 건너뜀 0 · 실패 0 |
