@@ -88,16 +88,16 @@ service/              CRUD · 분야/태그 정규화 · 통계 집계 · 마크
 service/export/       기록 → YAML 프론트매터 마크다운 ZIP
 service/importer/     마크다운 ZIP → 기록 (노트 하나가 트랜잭션 하나)
 web/                  컨트롤러 · 폼 DTO · 통계 JSON(/api/stats)
-resources/templates/  logs · stats · io · 공통 layout
+resources/templates/  home · logs · stats · plans · io · 공통 layout · 날짜 상자 프래그먼트
 ```
 
 ## 검증
 
 | 무엇을 | 어떻게 |
 |---|---|
-| 단위·통합 테스트 222개 | `./gradlew test --rerun-tasks` 26초(3회 실측 26·26·28) · 전부 통과 · 리포지토리 18개는 PostgreSQL 컨테이너 위 — 편차의 몫은 그 컨테이너 기동 |
+| 단위·통합 테스트 256개 | `./gradlew test --rerun-tasks` 24초(3회 실측 37·24·24) · 전부 통과 · 리포지토리 24개는 PostgreSQL 컨테이너 위 — 편차의 몫은 그 컨테이너 기동 |
 | 백업의 실제 복구 여부 | 내보낸 ZIP 을 비운 DB 에 되넣어 원본과 일치 · 같은 ZIP 재업로드는 전건 건너뛰기 (`MarkdownRoundTripTest`) |
-| PostgreSQL 위 이미지 기동 여부 | CI `image` 잡이 compose 로 띄워 앱 healthcheck 가 healthy 를 낼 때까지 기다린 뒤 `GET /logs` 200 확인 — 1분 33초 (run 31493666543) |
+| PostgreSQL 위 이미지 기동 여부 | CI `image` 잡이 compose 로 띄워 앱 healthcheck 가 healthy 를 낼 때까지 기다린 뒤 `/` `/logs` 200 확인 — 1분 32초 (run 31811431653) |
 | 실제 데이터의 화면 반영 여부 | 커밋 이력에서 만든 마크다운 130개를 `/import` 업로드 — 추가 130 · 건너뜀 0 · 실패 0 |
 | 배포본의 기동·응답 | 무접속 18분 뒤 첫 요청 166초 · 깨어난 직후 재요청 1.76초 · 데워진 뒤 0.13~1.18초 |
 | 배포 첫 부팅의 스키마 | 빈 DB 에 Flyway V1 적용 · `validate` 통과 — 이후 기록 130건 이관 · `/logs` `/stats` `/api/stats/*` 200 |
