@@ -46,12 +46,32 @@
     box-sizing: border-box;
 }
 
+/*
+ * 세로 flex 는 푸터를 바닥에 붙이기 위한 것이다. 그냥 흐름에 두면 로그인·오류 화면처럼 짧은
+ * 화면에서 본문 바로 밑에 뜨고 그 아래가 통째로 빈다.
+ * 가운데 정렬은 그대로다 — 교차축 기본값이 stretch 라 main 이 전체 폭으로 늘고, .container 의
+ * max-width 와 margin: 0 auto 가 그 안에서 폭을 잡는다
+ */
 body {
+    display: flex;
+    flex-direction: column;
+    /*
+     * 100vh 가 먼저 오는 것은 바닥값이기 때문. 모바일 브라우저에서 100vh 는 주소창이 접힌
+     * 상태의 높이라, 그 값을 쓰면 짧은 화면이 보이는 영역보다 커져 스크롤이 생기고 푸터가
+     * 첫 화면 아래로 내려간다 — 이 규칙이 막으려던 것이 그것이다. dvh 는 주소창을 뺀 실제 높이
+     */
+    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     background: var(--bg);
     color: var(--fg);
     font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
     line-height: 1.6;
+}
+
+/* 본문이 짧아도 남는 세로 공간을 가져간다 — 이것이 없으면 위 min-height 가 푸터를 밀지 못한다 */
+body > main {
+    flex: 1;
 }
 
 a {
@@ -87,6 +107,28 @@ a {
 /* 로그아웃은 POST 라 폼이지만 줄 안에서는 다른 메뉴와 같은 글자로 보여야 한다 */
 .topbar nav form {
     display: inline;
+}
+
+/* 화면을 위아래에서 닫는 두 줄이라 상단 띠와 같은 선·같은 여백을 쓴다 */
+.sitefoot {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+/*
+ * 사이트 전체는 a { text-decoration: none } 인데 여기만 밑줄을 되돌린다. 이 링크가 배포본에서
+ * 소스로 나가는 유일한 길이라 눌린다는 신호가 쉬는 상태에도 있어야 하고, hover 는 손가락으로
+ * 여는 화면에 아예 없다
+ */
+.sitefoot a {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.sitefoot a:hover {
+    color: var(--accent);
 }
 
 .link-button {

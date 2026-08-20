@@ -7,6 +7,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:replace="${title}">study-log</title>
     <!--
+      링크를 붙였을 때 뜨는 카드. 배포 URL 이 이 리포의 결과물 증거인데 이것이 없으면 그 링크의
+      첫인상이 빈 칸이다. 문구는 홈의 lead 와 같은 문장을 쓴다 — 화면에 보이는 말과 카드에 뜨는
+      말이 갈리면 어느 쪽이 이 앱의 소개인지 읽는 사람이 정하게 된다.
+
+      og:title 을 정적으로 두는 것은 <title> 이 th:replace 로 화면마다 갈리기 때문이다. 공유되는
+      것은 대개 루트이고, 카드가 가리켜야 하는 것도 페이지가 아니라 앱이다.
+
+      og:url 과 og:image 는 두지 않는다. 둘 다 절대 URL 이라 배포 호스트를 마크업에 박아야 하는데,
+      그러면 로컬·컨테이너 실행에서 어긋난 주소가 카드에 실린다. 언롤러는 og:url 이 없으면 가져온
+      주소를 그대로 쓴다
+    -->
+    <meta name="description" content="공부 세션을 기록하고 통계로 보는 로그북">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="study-log">
+    <meta property="og:title" content="study-log">
+    <meta property="og:description" content="공부 세션을 기록하고 통계로 보는 로그북">
+    <!--
       두 벌을 두는 이유는 서로 다른 것을 막기 때문이다. SVG 는 크기별 png 를 쌓지 않고 탭 아이콘을
       내주고, .ico 는 /favicon.ico 를 무조건 두드리는 쪽(크롤러 · 미리보기 봇 · 옛 사파리)이 없는
       주소에 닿아 4xx 템플릿을 통째로 렌더링하는 것을 막는다. 선언만으로는 뒤엣것이 닫히지 않는다.
@@ -31,5 +48,17 @@
     </nav>
 </header>
 <main th:replace="${content}"></main>
+<!--
+  배포본에서 코드로 나가는 유일한 자리. README 에서 배포로 가는 링크는 있지만 역방향이 없어,
+  이력서에 배포 URL 만 적힌 경우 링크를 받은 사람이 소스로 갈 수단이 하나도 없었다.
+
+  주소를 그대로 글자로 적는 것은 눌러서 어디로 가는지 미리 보이게 하기 위해서다.
+  5xx 화면도 이 레이아웃을 쓰지만 외부 정적 링크라 DB 를 밟지 않는다 — error/5xx.html 이 본문에
+  목록 링크를 두지 않은 것은 그쪽이 /logs 를 거쳐 다시 DB 에 닿기 때문이고, 여기는 해당이 없다
+-->
+<footer class="sitefoot">
+    <a href="https://github.com/minky5004/study-log"
+       target="_blank" rel="noopener external">github.com/minky5004/study-log</a>
+</footer>
 </body>
 </html>
