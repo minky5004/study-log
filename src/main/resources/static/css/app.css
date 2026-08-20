@@ -55,7 +55,13 @@
 body {
     display: flex;
     flex-direction: column;
+    /*
+     * 100vh 가 먼저 오는 것은 바닥값이기 때문. 모바일 브라우저에서 100vh 는 주소창이 접힌
+     * 상태의 높이라, 그 값을 쓰면 짧은 화면이 보이는 영역보다 커져 스크롤이 생기고 푸터가
+     * 첫 화면 아래로 내려간다 — 이 규칙이 막으려던 것이 그것이다. dvh 는 주소창을 뺀 실제 높이
+     */
     min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     background: var(--bg);
     color: var(--fg);
@@ -109,6 +115,16 @@ a {
     border-top: 1px solid var(--line);
     color: var(--muted);
     font-size: 0.85rem;
+}
+
+/*
+ * 사이트 전체는 a { text-decoration: none } 인데 여기만 밑줄을 되돌린다. 이 링크가 배포본에서
+ * 소스로 나가는 유일한 길이라 눌린다는 신호가 쉬는 상태에도 있어야 하고, hover 는 손가락으로
+ * 여는 화면에 아예 없다
+ */
+.sitefoot a {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
 }
 
 .sitefoot a:hover {

@@ -2,6 +2,7 @@ package com.minky.studylog.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
@@ -34,14 +35,38 @@ class LayoutTest {
     /**
      * 배포 URL 을 받은 사람이 코드로 갈 수 있는 유일한 자리라, 프래그먼트가 빠지면 배포본과
      * 리포가 다시 끊긴다. 끊긴 것은 화면에서 표시가 나지 않는다 — 없는 채로도 200 이다.
+     *
+     * <p><b>다섯이 서로를 대신한다.</b> 전부 같은 {@code layout :: page} 를 지나므로 하나가
+     * 실으면 나머지도 싣는다. 그런데도 늘어놓는 것은 어느 화면이 제 레이아웃을 따로 갖게 되는
+     * 날 그 자리를 여기서 보기 위해서고, 지금의 그물 값은 다음 테스트가 보는 <b>다른 경로</b>에 있다.
+     *
+     * <p>상태 코드를 함께 보는 것은 실패를 읽을 수 있게 하기 위해서다. 경로 하나가 인증 뒤로
+     * 옮겨 가면 MockMvc 는 본문 없는 302 를 돌려주는데, 본문만 단언하면 실패 문구가 권한 변경이
+     * 아니라 푸터를 가리킨다.
      */
     @Test
-    @DisplayName("모든 화면에 리포 링크 푸터 — 한 화면만 보면 빠진 화면을 못 잡는다")
+    @DisplayName("레이아웃을 지나는 화면은 리포 링크 푸터를 싣는다")
     void carriesRepoLinkOnEveryPage() throws Exception {
         for (String path : new String[] {"/", "/logs", "/plans", "/stats", "/login"}) {
             mockMvc.perform(get(path))
+                    .andExpect(status().isOk())
                     .andExpect(content().string(Matchers.containsString(REPO_LINK)));
         }
+    }
+
+    /**
+     * 화면이 제 뷰 이름을 돌려주는 경로 말고, <b>예외 핸들러가 뷰를 돌려주는 경로</b>도 같은
+     * 레이아웃을 지난다. 위 다섯과 달리 이쪽은 진짜로 갈릴 수 있는 자리다 — 오류 화면만 레이아웃
+     * 밖으로 나가면 푸터도 공유 메타도 함께 사라지는데, 응답은 여전히 404 라 표시가 나지 않는다.
+     *
+     * <p>없는 기록은 삭제된 기록의 링크로 늘 들어오므로 방문자가 실제로 닿는 화면이다.
+     */
+    @Test
+    @DisplayName("예외 핸들러가 돌려주는 오류 화면도 같은 레이아웃")
+    void carriesRepoLinkOnErrorView() throws Exception {
+        mockMvc.perform(get("/logs/999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(Matchers.containsString(REPO_LINK)));
     }
 
     /**
