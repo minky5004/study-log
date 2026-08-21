@@ -166,7 +166,7 @@ public class StudyLogController {
     @PostMapping
     public String create(@Valid @ModelAttribute("form") StudyLogForm form, BindingResult binding,
                          Model model) {
-        rejectInvalidInput(form, binding);
+        rejectInvalidInput(form, binding, null);
 
         if (binding.hasErrors()) {
             return formView(model);
@@ -191,7 +191,7 @@ public class StudyLogController {
                          BindingResult binding, Model model) {
         // 폼이 되돌아올 때 제출 주소를 다시 만드는 값이라 경로에서 채운다 — 본문 바인딩은 막혀 있다
         form.setId(id);
-        rejectInvalidInput(form, binding);
+        rejectInvalidInput(form, binding, studyLogService.toForm(id).getStudyDate());
 
         if (binding.hasErrors()) {
             return formView(model);
@@ -226,9 +226,13 @@ public class StudyLogController {
         return "error/4xx";
     }
 
-    /** 생성·수정이 같은 폼을 쓰므로 애너테이션 밖 검증도 한 자리에 둔다. */
-    private void rejectInvalidInput(StudyLogForm form, BindingResult binding) {
-        rejectFutureDate(form, binding);
+    /**
+     * 생성·수정이 같은 폼을 쓰므로 애너테이션 밖 검증도 한 자리에 둔다.
+     *
+     * @param storedDate 수정 전 저장돼 있던 날짜. 새 기록이면 {@code null}
+     */
+    private void rejectInvalidInput(StudyLogForm form, BindingResult binding, LocalDate storedDate) {
+        rejectFutureDate(form, binding, storedDate);
         // 같은 시각은 0분과 24시간을 구별할 수 없어 도메인이 거부한다. 예외로 튀기 전에 폼에서 잡는다
         if (form.getStartTime() != null && form.getStartTime().equals(form.getEndTime())) {
             binding.rejectValue("endTime", "sameTime", "시작 시각과 종료 시각이 같을 수 없습니다");
@@ -244,9 +248,15 @@ public class StudyLogController {
      * {@code Dockerfile} 의 {@code TZ=Asia/Seoul} 덕에 우연히 맞지만, 우연에 기대는 것이
      * 마이그레이션 checksum 사고와 같은 형태다.
      */
-    private void rejectFutureDate(StudyLogForm form, BindingResult binding) {
-        LocalDate today = LocalDate.now(StudyLogForm.ZONE);
-        if (form.getStudyDate() != null && form.getStudyDate().isAfter(today)) {
+    private void rejectFutureDate(StudyLogForm form, BindingResult binding, LocalDate storedDate) {
+        LocalDate date = form.getStudyDate();
+        // 저장돼 있던 날짜를 그대로 둔 수정은 통과시킨다. 이 검증보다 먼저 만들어졌거나
+        // /import 로 들어온 앞선 날짜가 있으면, 제목 오타 하나 고치는 데도 날짜부터 바꾸라는
+        // 화면이 되어 그 기록을 화면으로는 영영 손볼 수 없다
+        if (date == null || date.equals(storedDate)) {
+            return;
+        }
+        if (date.isAfter(LocalDate.now(StudyLogForm.ZONE))) {
             binding.rejectValue("studyDate", "future", "오늘 이후 날짜는 기록할 수 없습니다");
         }
     }
