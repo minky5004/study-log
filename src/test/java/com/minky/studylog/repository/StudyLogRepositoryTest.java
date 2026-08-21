@@ -262,14 +262,27 @@ class StudyLogRepositoryTest {
     @Test
     @DisplayName("분야 제안은 최초 등록 표기 그대로 · 대소문자 무시 이름순")
     void suggestsCategoryNamesIgnoringCase() {
-        categoryRepository.save(new Category("Spring"));
-        categoryRepository.save(new Category("algorithm"));
-        categoryRepository.save(new Category("CS"));
+        LocalDate date = LocalDate.of(2026, 8, 3);
+        saveLog("하나", "요약", null, "Spring", List.of("jpa"), date);
+        saveLog("둘", "요약", null, "algorithm", List.of("jpa"), date);
+        saveLog("셋", "요약", null, "CS", List.of("jpa"), date);
         flushAndClear();
 
         // name 으로 정렬하면 대문자가 앞으로 몰려 CS · Spring · algorithm 이 된다
-        assertThat(categoryRepository.findAllNamesOrderedByKey())
+        assertThat(categoryRepository.findUsedNamesOrderedByKey())
                 .containsExactly("algorithm", "CS", "Spring");
+    }
+
+    @Test
+    @DisplayName("기록이 하나도 없는 분야는 제안에서 빠진다")
+    void skipsCategoriesWithoutLogs() {
+        saveLog("하나", "요약", null, "Spring", List.of("jpa"), LocalDate.of(2026, 8, 3));
+        // 분야를 지우는 경로가 없어 오타로 만든 행은 영구히 남는다 — 제안까지 남기면 재생산된다
+        categoryRepository.save(new Category("Spirng"));
+        flushAndClear();
+
+        assertThat(categoryRepository.findUsedNamesOrderedByKey())
+                .containsExactly("Spring");
     }
 
     @Test
