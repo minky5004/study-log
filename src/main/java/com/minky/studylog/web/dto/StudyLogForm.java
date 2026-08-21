@@ -39,7 +39,13 @@ public class StudyLogForm {
     @Size(max = 50, message = "분야는 50자 이내")
     private String categoryName;
 
-    @Size(max = 500, message = "태그 입력이 너무 깁니다")
+    /**
+     * 규칙이 아니라 방어선이다. 태그의 규칙은 개수 20과 하나당 50자이고 csv 총길이는 그 파생값이라,
+     * 규칙 자리의 상한은 컨트롤러가 정규화한 결과로 잰다. 여기 남긴 4,000자는 규칙을 갑절로
+     * 늘려도 걸리지 않는 값이면서, 붙여넣은 문서 하나가 정규화의 split·치환을 먼저 지나
+     * 512MB 인스턴스의 메모리를 먹는 것을 막는다.
+     */
+    @Size(max = 4000, message = "태그 입력이 너무 깁니다")
     private String tagsCsv;
 
     @Size(max = 500, message = "요약은 500자 이내")

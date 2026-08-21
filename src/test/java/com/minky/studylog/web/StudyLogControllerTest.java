@@ -342,6 +342,8 @@ class StudyLogControllerTest {
     @Test
     @DisplayName("수정 제출은 그 기록의 상세로 리다이렉트")
     void updateRedirectsToDetail() throws Exception {
+        Mockito.when(studyLogService.toForm(1L)).thenReturn(storedOn(LocalDate.of(2026, 8, 3)));
+
         mockMvc.perform(post("/logs/1").param("title", "트랜잭션 격리 수준")
                         .param("studyDate", "2026-08-03")
                         .param("startTime", "23:00").param("endTime", "01:00")
@@ -355,6 +357,8 @@ class StudyLogControllerTest {
     @Test
     @DisplayName("수정 실패로 되돌아온 폼도 제출 주소를 유지 — 경로의 id 는 요청 본문에서 오지 않는다")
     void rejectedUpdateKeepsFormAction() throws Exception {
+        Mockito.when(studyLogService.toForm(1L)).thenReturn(storedOn(LocalDate.of(2026, 8, 3)));
+
         mockMvc.perform(post("/logs/1").param("title", "").param("studyDate", "2026-08-03")
                         .param("startTime", "09:00").param("endTime", "10:00")
                         .param("categoryName", "Spring").with(csrf()))
@@ -426,5 +430,139 @@ class StudyLogControllerTest {
         ArgumentCaptor<StudyLogForm> captor = ArgumentCaptor.forClass(StudyLogForm.class);
         Mockito.verify(studyLogService).create(captor.capture());
         assertThat(captor.getValue().getNote()).isEqualTo("# 제목\n\n- 항목");
+    }
+
+    @Test
+    @DisplayName("종료일이 시작일보다 앞서면 조회 없이 그 사유를 말함 — 조용한 0건은 기록이 사라진 것으로 읽힌다")
+    void rejectsReversedSearchRange() throws Exception {
+        mockMvc.perform(get("/logs").param("from", "2026-08-20").param("to", "2026-08-01"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("logs/list"))
+                .andExpect(model().attribute("cond", hasProperty("rangeReversed", is(true))))
+                .andExpect(content().string(containsString("종료일이 시작일보다 앞섭니다")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        containsString("조건에 맞는 기록이 없습니다"))));
+
+        Mockito.verify(studyLogService, Mockito.never())
+                .findAll(any(StudyLogSearchCond.class), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("같은 날짜의 시작·종료는 통과 — 하루치 검색이 경계에서 막히지 않게")
+    void acceptsSameDaySearchRange() throws Exception {
+        mockMvc.perform(get("/logs").param("from", "2026-08-01").param("to", "2026-08-01"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("cond", hasProperty("rangeReversed", is(false))));
+
+        Mockito.verify(studyLogService).findAll(any(StudyLogSearchCond.class), any(Pageable.class));
+    }
+
+    /**
+     * 날짜 칸이 {@code type="date"} 라 사람은 형식을 틀릴 수 없고, 이 값은 주소창에서만 온다.
+     * 화면으로 내리면 스프링의 typeMismatch 영어 장문이 그대로 그려지므로 400 을 유지한다 —
+     * {@code /api/stats/heatmap} 의 판정과도 같은 자리다.
+     */
+    @Test
+    @DisplayName("날짜 형식이 깨진 검색은 400 그대로 — 주소창 조작과 잘못 고른 날짜는 다른 이야기")
+    void keepsMalformedSearchDateAsBadRequest() throws Exception {
+        mockMvc.perform(get("/logs").param("from", "abc"))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verify(studyLogService, Mockito.never())
+                .findAll(any(StudyLogSearchCond.class), any(Pageable.class));
+    }
+
+    /**
+     * 앞선 날짜는 잔디와 추이의 창 밖으로 나가면서 분야별·시간대 집계에는 그대로 들어간다.
+     * 같은 기록이 통계 화면 안에서 어떤 차트엔 들고 어떤 차트엔 안 드는 자리다.
+     */
+    @Test
+    @DisplayName("오늘 이후 날짜는 폼에서 거부 — 집계마다 들고 안 드는 기록이 되지 않게")
+    void rejectsFutureStudyDate() throws Exception {
+        LocalDate tomorrow = LocalDate.now(StudyLogForm.ZONE).plusDays(1);
+
+        mockMvc.perform(post("/logs").param("title", "제목").param("studyDate", tomorrow.toString())
+                        .param("startTime", "09:00").param("endTime", "10:00")
+                        .param("categoryName", "Spring").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("logs/form"))
+                .andExpect(model().attributeHasFieldErrors("form", "studyDate"));
+
+        Mockito.verify(studyLogService, Mockito.never()).create(any());
+    }
+
+    @Test
+    @DisplayName("오늘 날짜는 통과 — 상한이 오늘을 잘라내지 않게")
+    void acceptsTodayStudyDate() throws Exception {
+        Mockito.when(studyLogService.create(any())).thenReturn(7L);
+        LocalDate today = LocalDate.now(StudyLogForm.ZONE);
+
+        mockMvc.perform(post("/logs").param("title", "제목").param("studyDate", today.toString())
+                        .param("startTime", "09:00").param("endTime", "10:00")
+                        .param("categoryName", "Spring").with(csrf()))
+                .andExpect(redirectedUrl("/logs/7"));
+    }
+
+    /**
+     * 태그 20개에 각 30자면 619자다. csv 총길이 상한이 따로 있으면 개수와 길이를 다 지키고도
+     * 걸리는데, 그 문구는 개수를 줄이라는 것인지 길이를 줄이라는 것인지 말하지 못한다.
+     */
+    @Test
+    @DisplayName("개수·길이를 지킨 긴 태그 입력은 통과 — 파생 상한이 규칙을 넘어서지 않게")
+    void acceptsLongTagCsvWithinPerTagLimits() throws Exception {
+        Mockito.when(studyLogService.create(any())).thenReturn(9L);
+        String tags = java.util.stream.IntStream.rangeClosed(1, 20)
+                .mapToObj(i -> "t".repeat(28) + String.format("%02d", i))
+                .collect(java.util.stream.Collectors.joining(","));
+        assertThat(tags).hasSize(619);
+
+        mockMvc.perform(post("/logs").param("title", "제목").param("studyDate", "2026-08-03")
+                        .param("startTime", "09:00").param("endTime", "10:00")
+                        .param("categoryName", "Spring")
+                        .param("tagsCsv", tags).with(csrf()))
+                .andExpect(redirectedUrl("/logs/9"));
+    }
+
+    /** 수정 경로가 저장된 날짜를 읽어 오므로, 그 날짜만 담은 폼을 돌려준다. */
+    private static StudyLogForm storedOn(LocalDate studyDate) {
+        StudyLogForm stored = new StudyLogForm();
+        stored.setStudyDate(studyDate);
+        return stored;
+    }
+
+    /**
+     * 이 검증보다 먼저 만들어졌거나 {@code /import} 로 들어온 앞선 날짜가 있으면, 날짜를 건드리지
+     * 않는 수정까지 막혀 그 기록을 화면으로는 손볼 수 없게 된다.
+     */
+    @Test
+    @DisplayName("이미 앞선 날짜인 기록도 날짜를 그대로 두면 수정됨 — 화면으로 손댈 수 없는 기록을 만들지 않게")
+    void allowsEditingRecordAlreadyDatedAhead() throws Exception {
+        LocalDate tomorrow = LocalDate.now(StudyLogForm.ZONE).plusDays(1);
+        Mockito.when(studyLogService.toForm(1L)).thenReturn(storedOn(tomorrow));
+
+        mockMvc.perform(post("/logs/1").param("title", "제목 오타 수정")
+                        .param("studyDate", tomorrow.toString())
+                        .param("startTime", "09:00").param("endTime", "10:00")
+                        .param("categoryName", "Spring").with(csrf()))
+                .andExpect(redirectedUrl("/logs/1"));
+
+        Mockito.verify(studyLogService).update(Mockito.eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("수정으로 날짜를 앞으로 미는 것은 거부 — 생성만 막으면 우회 경로가 남는다")
+    void rejectsMovingStudyDateAheadOnUpdate() throws Exception {
+        Mockito.when(studyLogService.toForm(1L)).thenReturn(storedOn(LocalDate.of(2026, 8, 3)));
+        LocalDate tomorrow = LocalDate.now(StudyLogForm.ZONE).plusDays(1);
+
+        mockMvc.perform(post("/logs/1").param("title", "제목")
+                        .param("studyDate", tomorrow.toString())
+                        .param("startTime", "09:00").param("endTime", "10:00")
+                        .param("categoryName", "Spring").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("logs/form"))
+                .andExpect(model().attributeHasFieldErrors("form", "studyDate"));
+
+        Mockito.verify(studyLogService, Mockito.never()).update(any(), any());
     }
 }

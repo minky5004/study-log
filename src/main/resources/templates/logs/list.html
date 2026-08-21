@@ -54,7 +54,16 @@
     <p class="empty" th:if="${logs.isEmpty() and cond.empty}">
         아직 기록이 없습니다. 첫 세션을 남기면 여기에 쌓입니다.
     </p>
-    <p class="empty" th:if="${logs.isEmpty() and !cond.empty}">
+    <!--
+      결과가 비어 보이는 이유를 그 자리에서 대신 말한다. 폼 안에 두면 `.search` 가
+      align-items: flex-end 라 이 줄만큼 다른 칸들이 내려가 종료일 칸이 시작일과 어긋난다
+    -->
+    <p class="empty" th:if="${cond.rangeReversed}">
+        종료일이 시작일보다 앞섭니다. 기간을 다시 골라 보세요.
+    </p>
+
+    <!-- 역전된 기간에는 이 문구를 내지 않는다. 둘이 함께 뜨면 조건을 넓히려 들어 진짜 이유를 지나친다 -->
+    <p class="empty" th:if="${logs.isEmpty() and !cond.empty and !cond.rangeReversed}">
         조건에 맞는 기록이 없습니다. 조건을 넓히거나 초기화해 보세요.
     </p>
 

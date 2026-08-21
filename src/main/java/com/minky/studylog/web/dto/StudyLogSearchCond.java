@@ -25,6 +25,14 @@ public class StudyLogSearchCond {
         return isBlank(keyword) && isBlank(categoryName) && isBlank(tag) && from == null && to == null;
     }
 
+    /**
+     * 종료일이 시작일보다 앞선 상태. 결과가 0건인 것이 이미 확정이라 조회 자체를 건너뛰는 데
+     * 쓴다 — 조용한 0건은 "조건에 맞는 기록이 없습니다" 로 나가 기록이 사라진 것으로 읽힌다.
+     */
+    public boolean isRangeReversed() {
+        return from != null && to != null && from.isAfter(to);
+    }
+
     private static boolean isBlank(String raw) {
         return raw == null || raw.isBlank();
     }
