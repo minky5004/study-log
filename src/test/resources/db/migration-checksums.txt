@@ -1,0 +1,10 @@
+# 적용이 끝난 마이그레이션의 Flyway checksum. 이 목록이 기댓값의 정본이다.
+#
+# 형식은 `파일명 checksum` 한 줄씩이고 `#` 로 시작하는 줄과 빈 줄은 건너뛴다.
+# 값을 고치는 것은 파일을 고쳐도 된다는 뜻이 아니다 — 새 마이그레이션을 추가할 때만
+# 한 줄을 덧붙인다. 근거는 src/main/resources/db/migration/NOTES.md 에 있다.
+#
+# V1 의 값은 운영 Neon 의 flyway_schema_history 가 실제로 가진 값이다(2026-08-16 실측).
+
+V1__baseline_schema.sql 1981831069
+V2__study_plan.sql -1361260748
