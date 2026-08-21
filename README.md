@@ -98,7 +98,7 @@ resources/templates/  home · logs · stats · plans · io · 공통 layout · �
 
 | 무엇을 | 어떻게 |
 |---|---|
-| 단위·통합 테스트 259개 | `./gradlew test --rerun-tasks` 29초(3회 실측 30·28·29) · 전부 통과 · 리포지토리 24개는 PostgreSQL 컨테이너 위 — 도커 데몬이 뜬 상태 기준 |
+| 단위·통합 테스트 262개 | `./gradlew test --rerun-tasks` 29초(3회 실측 29·29·29) · 전부 통과 · 리포지토리 24개는 PostgreSQL 컨테이너 위 — 도커 데몬이 뜬 상태 기준 |
 | 백업의 실제 복구 여부 | 내보낸 ZIP 을 비운 DB 에 되넣어 원본과 일치 · 같은 ZIP 재업로드는 전건 건너뛰기 (`MarkdownRoundTripTest`) |
 | PostgreSQL 위 이미지 기동 여부 | CI `image` 잡이 compose 로 띄워 앱 healthcheck 가 healthy 를 낼 때까지 기다린 뒤 `/` `/logs` 200 확인 — 1분 32초 (run 31811431653) |
 | 실제 데이터의 화면 반영 여부 | 커밋 이력에서 만든 마크다운 130개를 `/import` 업로드 — 추가 130 · 건너뜀 0 · 실패 0 |
