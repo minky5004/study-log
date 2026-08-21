@@ -22,6 +22,13 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      *
      * <p>{@code join} 대신 {@code exists} 인 것은 분야당 한 행이 저절로 나와 {@code distinct}
      * 도 {@code group by} 도 필요 없기 때문 — 정렬 규칙이 {@code order by} 한 줄에 남는다.
+     *
+     * <p>대가 하나를 안다. 비워진 분야도 {@code name_key} 는 계속 쥐고 있어, 나중에 같은 이름을
+     * 다른 대소문자로 쳐도 {@link com.minky.studylog.service.CategoryService#resolve} 가 그 행을
+     * 찾아 화면에는 최초 등록 표기가 뜬다. 표기 우선은 원래 정해 둔 규칙이고 여기서 바뀌지 않지만,
+     * 등록 표기를 알려 주던 것이 이 제안이었으므로 비워진 분야에서는 그 안내가 사라진다. 그것을
+     * 되살리려면 고아 행을 지우거나 제안에 도로 실어야 하는데, 앞은 분야 관리 화면의 일이고
+     * 뒤는 오타 재생산을 막자는 이 규칙 자체를 되돌린다.
      */
     @Query("select c.name from Category c "
             + "where exists (select 1 from StudyLog l where l.category = c) "
