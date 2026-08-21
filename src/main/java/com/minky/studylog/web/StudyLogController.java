@@ -12,6 +12,8 @@ import jakarta.validation.Valid;
 import java.beans.PropertyEditorSupport;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -81,8 +83,19 @@ public class StudyLogController {
             @ModelAttribute("cond") StudyLogSearchCond cond, Model model) {
         // 음수 페이지는 PageRequest 가 예외로 거부한다 — 주소창 조작이 500 이 되지 않게 접는다
         int requested = Math.max(0, page);
-        Page<StudyLogListItem> logs = studyLogService.findAll(cond,
-                PageRequest.of(requested, PAGE_SIZE, StudyLogService.LATEST_FIRST));
+        PageRequest pageRequest =
+                PageRequest.of(requested, PAGE_SIZE, StudyLogService.LATEST_FIRST);
+
+        // 날짜 형식이 깨진 값은 여기 오지 않고 400 으로 끝난다. 날짜 칸이 type="date" 라 사람은
+        // 형식을 틀릴 수 없고 그 값은 주소창에서만 오므로, 잘못 고른 날짜와 같은 화면에 두지 않는다
+        if (cond.isRangeReversed()) {
+            model.addAttribute("logs", Page.empty(pageRequest));
+            model.addAttribute("days", List.of());
+            addSuggestions(model);
+            return "logs/list";
+        }
+
+        Page<StudyLogListItem> logs = studyLogService.findAll(cond, pageRequest);
 
         if (requested > 0 && requested >= logs.getTotalPages()) {
             return "redirect:" + logsUrl(cond, Math.max(0, logs.getTotalPages() - 1));
@@ -215,11 +228,27 @@ public class StudyLogController {
 
     /** 생성·수정이 같은 폼을 쓰므로 애너테이션 밖 검증도 한 자리에 둔다. */
     private void rejectInvalidInput(StudyLogForm form, BindingResult binding) {
+        rejectFutureDate(form, binding);
         // 같은 시각은 0분과 24시간을 구별할 수 없어 도메인이 거부한다. 예외로 튀기 전에 폼에서 잡는다
         if (form.getStartTime() != null && form.getStartTime().equals(form.getEndTime())) {
             binding.rejectValue("endTime", "sameTime", "시작 시각과 종료 시각이 같을 수 없습니다");
         }
         rejectInvalidTags(form, binding);
+    }
+
+    /**
+     * 앞선 날짜는 잔디와 추이의 365일 창 밖으로 나가면서 분야별·시간대 집계에는 그대로 들어간다 —
+     * 같은 기록이 통계 화면 안에서 어떤 차트엔 들고 어떤 차트엔 안 드는 자리다.
+     *
+     * <p>{@code @PastOrPresent} 를 쓰지 않는 것은 그것이 JVM 기본 시간대를 읽기 때문이다. 지금은
+     * {@code Dockerfile} 의 {@code TZ=Asia/Seoul} 덕에 우연히 맞지만, 우연에 기대는 것이
+     * 마이그레이션 checksum 사고와 같은 형태다.
+     */
+    private void rejectFutureDate(StudyLogForm form, BindingResult binding) {
+        LocalDate today = LocalDate.now(StudyLogForm.ZONE);
+        if (form.getStudyDate() != null && form.getStudyDate().isAfter(today)) {
+            binding.rejectValue("studyDate", "future", "오늘 이후 날짜는 기록할 수 없습니다");
+        }
     }
 
     /** 태그 컬럼이 50자라, 넘는 값은 저장 시점에 터진다. 정규화한 결과로 미리 잰다. */

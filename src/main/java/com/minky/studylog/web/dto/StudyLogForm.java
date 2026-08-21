@@ -39,7 +39,11 @@ public class StudyLogForm {
     @Size(max = 50, message = "분야는 50자 이내")
     private String categoryName;
 
-    @Size(max = 500, message = "태그 입력이 너무 깁니다")
+    /**
+     * csv 총길이 상한을 두지 않는다. 태그의 규칙은 개수와 하나당 길이이고 총길이는 그 파생값이라,
+     * 따로 두면 상한을 고칠 때마다 세 곳이 함께 움직여야 한다. 실제 상한은 컨트롤러의 개수·길이
+     * 검증과 톰캣의 POST 본문 제한이 잡는다.
+     */
     private String tagsCsv;
 
     @Size(max = 500, message = "요약은 500자 이내")
