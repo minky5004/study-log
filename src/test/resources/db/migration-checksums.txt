@@ -11,3 +11,4 @@
 
 V1__baseline_schema.sql 1981831069
 V2__study_plan.sql -1361260748
+V3__persistent_logins.sql 398004051

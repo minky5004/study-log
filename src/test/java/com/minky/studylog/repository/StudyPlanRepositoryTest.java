@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.minky.studylog.domain.PlanPriority;
 import com.minky.studylog.domain.StudyPlan;
+import com.minky.studylog.support.PostgresTestContainer;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;

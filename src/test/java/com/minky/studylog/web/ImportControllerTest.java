@@ -12,6 +12,7 @@ import com.minky.studylog.config.SecurityConfig;
 import com.minky.studylog.service.importer.ImportReport;
 import com.minky.studylog.service.importer.ImportReport.Failure;
 import com.minky.studylog.service.importer.MarkdownImportService;
+import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.hamcrest.Matchers;
@@ -30,6 +31,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ImportController.class)
 @Import(SecurityConfig.class)
+// SecurityConfig 가 remember-me 토큰 저장소를 함께 들고 오는데 화면 슬라이스에는 DB 가 없다.
+// 여기서 재는 것은 권한 경계와 화면이지 토큰이 어디에 담기는가가 아니다 — 실제 저장소를
+// 밟는 곳은 RememberMeTest 하나다
+@MockitoBean(types = DataSource.class)
 @ActiveProfiles("test")
 @WithMockUser(roles = "ADMIN")
 class ImportControllerTest {

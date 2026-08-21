@@ -23,6 +23,11 @@
             <span class="field-label">비밀번호</span>
             <input type="password" name="password" autocomplete="current-password">
         </label>
+        <!-- 켠 요청만 토큰을 만든다 — 빌린 기계에서의 로그인이 2주짜리 쿠키를 남기지 않게 -->
+        <label class="field-check">
+            <input type="checkbox" name="remember-me">
+            <span>로그인 상태 유지</span>
+        </label>
         <div class="form-actions">
             <button type="submit" class="button">로그인</button>
         </div>

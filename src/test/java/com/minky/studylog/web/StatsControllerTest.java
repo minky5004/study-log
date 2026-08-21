@@ -7,16 +7,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.minky.studylog.config.SecurityConfig;
 import org.hamcrest.Matchers;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(StatsController.class)
 @Import(SecurityConfig.class)
+// SecurityConfig 가 remember-me 토큰 저장소를 함께 들고 오는데 화면 슬라이스에는 DB 가 없다.
+// 여기서 재는 것은 권한 경계와 화면이지 토큰이 어디에 담기는가가 아니다 — 실제 저장소를
+// 밟는 곳은 RememberMeTest 하나다
+@MockitoBean(types = DataSource.class)
 @ActiveProfiles("test")
 class StatsControllerTest {
 
