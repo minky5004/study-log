@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -27,6 +28,8 @@ public class SecurityConfig {
      * 조회 메서드를 열거하는 방향으로 적는 것은 앞으로 들어올 PUT·DELETE 도 함께 걸리게 하기 위해서.
      */
     private static final RequestMatcher STATE_CHANGING = SecurityConfig::changesState;
+
+    private static final String LOGIN_PATH = "/login";
 
     private static boolean changesState(HttpServletRequest request) {
         String method = request.getMethod();
@@ -66,13 +69,16 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers(STATE_CHANGING).authenticated()
                         .anyRequest().permitAll())
-                .formLogin(form -> form.loginPage("/login").permitAll())
+                .formLogin(form -> form.loginPage(LOGIN_PATH).permitAll())
                 .csrf(csrf -> csrf.csrfTokenRepository(new CookieCsrfTokenRepository()))
                 // 유효기간은 기본값(2주) 그대로 둔다 — 쓸 때마다 갱신되므로 매일 여는 도구에서는
                 // 사실상 만료되지 않고, 여기 숫자를 새로 정하면 근거 없는 값이 하나 는다
                 .rememberMe(remember -> remember
                         .tokenRepository(tokens)
                         .userDetailsService(users))
+                // 옛 토큰이 한 번 더 왔을 때 500 이 나가는 자리를 막는다 — 근거는 그 클래스에
+                .addFilterBefore(new CookieTheftRedirectFilter(LOGIN_PATH),
+                        RememberMeAuthenticationFilter.class)
                 // 목록으로 돌려보낸다 — 로그아웃 직후 남는 화면이 로그인 폼이면 방금 한 일과 어긋난다
                 .logout(logout -> logout.logoutSuccessUrl("/logs"));
         return http.build();

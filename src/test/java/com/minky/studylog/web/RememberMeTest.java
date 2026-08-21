@@ -147,6 +147,30 @@ class RememberMeTest {
         assertThat(logout.getResponse().getCookie(REMEMBER_ME_COOKIE).getMaxAge()).isZero();
     }
 
+    /**
+     * 같은 series 의 옛 토큰이 한 번 더 오는 상황. 탭 둘이 열려 있다가 앱이 재기동되면 한쪽이
+     * 토큰을 갈아 끼운 뒤 다른 쪽이 옛 값을 들고 오고, 뒤로 가기 복원이나 재시도도 같은 모양이다.
+     *
+     * <p>{@code AbstractRememberMeServices.autoLogin} 은 이때 쿠키를 지운 뒤
+     * {@code CookieTheftException} 을 다시 던지는데, {@code RememberMeAuthenticationFilter} 의
+     * 예외 표가 {@code autoLogin} 호출을 덮지 않아 그대로 필터 밖으로 나간다. 그러면 이 사이클이
+     * 없애려던 결말이 403 에서 500 으로 자리만 옮긴다.
+     */
+    @Test
+    @DisplayName("옛 토큰이 다시 와도 500 이 아니라 로그인 화면으로")
+    void replayedTokenDoesNotBecomeServerError() throws Exception {
+        login(true);
+        Cookie stale = jar.get(REMEMBER_ME_COOKIE);
+
+        exchange(get("/logs"));
+
+        jar.put(REMEMBER_ME_COOKIE, stale);
+        MvcResult replayed = exchange(get("/logs/new"));
+
+        assertThat(replayed.getResponse().getStatus()).isEqualTo(302);
+        assertThat(replayed.getResponse().getRedirectedUrl()).endsWith("/login");
+    }
+
     private MvcResult login(boolean remember) throws Exception {
         MvcResult page = exchange(get("/login"));
         MockHttpServletRequestBuilder request = post("/login")
