@@ -801,6 +801,22 @@ h1 {
     font-size: 0.82rem;
 }
 
+/* 라벨과 입력이 위아래로 서는 `.field` 와 달리 체크박스는 나란히 선다. 아래 `input` 규칙이
+   테두리와 여백을 전부에 걸므로 여기서만 되돌린다 — 체크박스에 걸면 상자가 두 겹이 된다 */
+.field-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.field-check input {
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
 input,
 textarea,
 select {

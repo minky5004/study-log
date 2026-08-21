@@ -9,6 +9,7 @@ import com.minky.studylog.domain.StudyLog;
 import com.minky.studylog.repository.projection.CategoryTotal;
 import com.minky.studylog.repository.projection.DailyTotal;
 import com.minky.studylog.repository.projection.StartTimeSlice;
+import com.minky.studylog.support.PostgresTestContainer;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;

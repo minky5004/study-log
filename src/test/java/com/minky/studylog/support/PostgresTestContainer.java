@@ -1,4 +1,4 @@
-package com.minky.studylog.repository;
+package com.minky.studylog.support;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -19,11 +19,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * 하나다 — 슬라이스나 프로퍼티가 다르면 컨텍스트가 갈라지고 컨테이너도 따로 뜬다. 클래스마다
  * 정적 필드를 두는 형태는 그 재사용마저 잃는다.
  *
- * <p>쓰는 곳이 같은 패키지 하나뿐이라 패키지 전용으로 둔다. 밖에서 쓸 일이 생기면 그때 옮긴다 —
- * 손이 닿지 않는 자리에 두면 베껴 쓰게 되고, 사본은 곧 두 번째 컨테이너다.
+ * <p>처음에는 리포지토리 패키지에 패키지 전용으로 두고 "밖에서 쓸 일이 생기면 그때 옮긴다" 고
+ * 적어 두었다. 08-21 에 그때가 왔다 — {@code persistent_logins} 는 엔티티가 없어 H2 쪽
+ * {@code create-drop} 이 만들지 않으므로, remember-me 를 밟는 웹 테스트도 실제 엔진 위에 있어야
+ * 한다. 사본을 두지 않는 이유는 그대로다 — 사본은 곧 두 번째 컨테이너다.
  */
 @TestConfiguration(proxyBeanMethods = false)
-class PostgresTestContainer {
+public class PostgresTestContainer {
 
     /**
      * 태그를 {@code compose.yaml} 과 맞춘다 — 테스트가 통과한 엔진과 배포되는 엔진이 갈리면
@@ -33,7 +35,7 @@ class PostgresTestContainer {
 
     @Bean
     @ServiceConnection
-    PostgreSQLContainer postgres() {
+    public PostgreSQLContainer postgres() {
         return new PostgreSQLContainer(IMAGE);
     }
 }
