@@ -24,7 +24,7 @@
 |---|---|
 | Language | Java 21 |
 | Framework | Spring Boot 4.1 · Spring Data JPA · Spring Security · Validation |
-| Database | PostgreSQL (운영 Neon · 컨테이너 · 리포지토리 테스트) · H2 (로컬 · 나머지 테스트) · 스키마는 Flyway |
+| Database | PostgreSQL (운영 Neon · 컨테이너 · 리포지토리·remember-me 테스트) · H2 (로컬 · 나머지 테스트) · 스키마는 Flyway |
 | View | Thymeleaf 서버 렌더링(별도 프론트엔드 빌드 없음) · Chart.js · 히트맵은 CSS Grid 자체 구현 |
 | Markdown | commonmark-java 렌더링 + jsoup 새니타이즈 |
 | Build · CI | Gradle · GitHub Actions · Docker Compose |
