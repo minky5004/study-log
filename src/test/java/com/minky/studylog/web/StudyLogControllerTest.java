@@ -463,6 +463,32 @@ class StudyLogControllerTest {
     }
 
     /**
+     * {@code type="date"} 는 {@code yyyy-MM-dd} 만 받고 나머지는 통째로 버린다. 형식을 로캘에
+     * 맡기면 <b>같은 화면이 방문자마다 다른 값</b>을 내므로 헤더를 붙여 실제 사용자 쪽을 잰다 —
+     * 같은 인스턴스가 {@code ko-KR} 에 {@code 26. 8. 1.} 을, 헤더 없는 요청에 {@code 8/1/26} 을
+     * 냈다. 단언은 어느 쪽에서도 같아야 하는 ISO 에 건다.
+     */
+    @Test
+    @DisplayName("한국어 브라우저의 기간 검색도 날짜 칸은 ISO — 로캘 형식은 type=date 가 버린다")
+    void searchFormPrefillsDatesAsIso() throws Exception {
+        mockMvc.perform(get("/logs")
+                        .header("Accept-Language", "ko-KR,ko;q=0.9")
+                        .param("from", "2026-08-01").param("to", "2026-08-31"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("value=\"2026-08-01\"")))
+                .andExpect(content().string(containsString("value=\"2026-08-31\"")));
+    }
+
+    @Test
+    @DisplayName("역전 기간도 날짜 칸을 되비침 — 잘못 고른 날짜가 사라지면 무엇을 고칠지 알 수 없다")
+    void reversedSearchRangeKeepsDatesInForm() throws Exception {
+        mockMvc.perform(get("/logs").param("from", "2026-08-20").param("to", "2026-08-01"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("value=\"2026-08-20\"")))
+                .andExpect(content().string(containsString("value=\"2026-08-01\"")));
+    }
+
+    /**
      * 날짜 칸이 {@code type="date"} 라 사람은 형식을 틀릴 수 없고, 이 값은 주소창에서만 온다.
      * 화면으로 내리면 스프링의 typeMismatch 영어 장문이 그대로 그려지므로 400 을 유지한다 —
      * {@code /api/stats/heatmap} 의 판정과도 같은 자리다.
