@@ -1,6 +1,7 @@
 package com.minky.studylog.web.dto;
 
 import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  * 목록 화면의 검색 조건. 전부 비면 조건 없는 전체 조회다.
@@ -14,7 +15,20 @@ public class StudyLogSearchCond {
     private String keyword;
     private String categoryName;
     private String tag;
+
+    /**
+     * 형식을 못박는 것은 되비칠 때를 위해서다. 애너테이션이 없으면 렌더가 요청의
+     * {@code Accept-Language} 를 따라가므로 <b>같은 화면이 방문자마다 다른 값</b>을 낸다 —
+     * 한국어 브라우저는 {@code 26. 8. 1.} 을, 헤더 없는 요청은 {@code 8/1/26} 을 받는다.
+     * 날짜 칸이 {@code type="date"} 라 {@code yyyy-MM-dd} 가 아닌 값은 브라우저가 통째로 버리고
+     * 빈 칸을 그린다. 무엇으로 좁힌 목록인지 사라지고, 그대로 검색을 한 번 더 누르면 기간
+     * 조건이 조용히 풀린다. 폼 쪽 {@code StudyLogForm.studyDate} 가 이미 같은 형식을 지고
+     * 있으므로 여기만 규칙 밖에 있던 자리다.
+     */
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate from;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate to;
 
     /**
