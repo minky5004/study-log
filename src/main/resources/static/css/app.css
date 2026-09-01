@@ -401,6 +401,16 @@ h1 {
     color: var(--accent);
 }
 
+/*
+ * 분야·태그 배지가 그 조건으로 좁힌 목록으로 가는 링크다. 밑줄은 넣지 않는다 — 쉬는 상태의
+ * 밑줄은 푸터 한 줄이 가진 것이고(위 .sitefoot 주석), 한 줄에 배지가 여럿인 자리에 같은 것을
+ * 주면 메타 줄이 목록의 본문보다 시끄러워진다. 태그 쪽은 상세도 같은 클래스를 쓴다
+ */
+a.session-category:hover,
+a.session-tag:hover {
+    color: var(--accent);
+}
+
 .session-summary {
     margin: 0.4rem 0 0 4.05rem;
     color: var(--muted);
@@ -585,6 +595,10 @@ h1 {
     height: 0.45rem;
     border-radius: 50%;
     background: var(--cat, var(--muted));
+}
+
+a.entry-category:hover {
+    color: var(--accent);
 }
 
 /* 요약과 노트 본문이 같은 색이면 어디까지가 한 줄 요약인지 경계가 없다 */
