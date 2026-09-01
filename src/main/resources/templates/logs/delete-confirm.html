@@ -14,6 +14,11 @@
     <article class="entry doomed">
         <header class="entry-head">
             <h2 class="entry-title" th:text="${log.title()}">자료 구조 복습</h2>
+            <!--
+              목록·상세에서는 분야와 태그가 그 조건으로 좁힌 목록으로 가는 링크인데 여기만 span 이다.
+              이 화면의 배지는 무엇이 사라지는지 보여주는 자리라, 확인 직전에 화면을 뜨는 길을
+              배지마다 놓으면 위 안내와 어긋난다
+            -->
             <p class="entry-meta">
                 <span class="entry-category" th:classappend="'cat-' + ${log.categoryColorIndex()}"
                       th:text="${log.categoryName()}">CS</span>

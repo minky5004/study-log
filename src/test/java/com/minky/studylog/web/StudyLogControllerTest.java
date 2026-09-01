@@ -185,6 +185,38 @@ class StudyLogControllerTest {
                 .andExpect(content().string(containsString("href=\"/logs/1\"")));
     }
 
+    /**
+     * 배지가 싣는 것은 자기 조건 하나뿐이다. 화면에 걸린 기간·키워드를 함께 실으면 같은 태그가
+     * 화면마다 다른 곳으로 가고, 조건이 아예 없는 상세에서는 실을 것 자체가 없다.
+     */
+    @Test
+    @DisplayName("목록의 분야·태그 배지는 그 조건 하나로 좁힌 목록으로 감 — `+` 가 공백으로 풀리지 않게")
+    void listLinksCategoryAndTag() throws Exception {
+        StudyLogListItem item = new StudyLogListItem(1L, "포인터 정리", LocalDate.of(2026, 8, 3),
+                LocalTime.of(9, 0), LocalTime.of(10, 0), 60,
+                "C++", 1L, List.of("c++", "포인터"), "요약");
+        Mockito.when(studyLogService.findAll(any(StudyLogSearchCond.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(item), PageRequest.of(0, 20), 1));
+
+        mockMvc.perform(get("/logs"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/logs?categoryName=C%2B%2B\"")))
+                .andExpect(content().string(containsString("href=\"/logs?tag=c%2B%2B\"")))
+                .andExpect(content().string(
+                        containsString("href=\"/logs?tag=%ED%8F%AC%EC%9D%B8%ED%84%B0\"")));
+    }
+
+    @Test
+    @DisplayName("상세의 분야·태그도 같은 목록으로 감 — 노트를 읽다 같은 갈래로 건너뛰는 자리")
+    void detailLinksCategoryAndTag() throws Exception {
+        Mockito.when(studyLogService.findById(1L)).thenReturn(detail("<p>본문</p>"));
+
+        mockMvc.perform(get("/logs/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/logs?categoryName=CS\"")))
+                .andExpect(content().string(containsString("href=\"/logs?tag=%ED%81%90\"")));
+    }
+
     @Test
     @DisplayName("페이지 링크는 조건을 되읽을 수 있는 형태로 실음 — `+` 가 공백으로 풀리지 않게")
     void pageLinkKeepsKeywordEncoded() throws Exception {

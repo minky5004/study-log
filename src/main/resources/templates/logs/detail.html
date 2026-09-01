@@ -11,16 +11,20 @@
         <header class="entry-head">
             <h1 th:text="${log.title()}">자료 구조 복습</h1>
             <p class="entry-meta">
-                <span class="entry-category" th:classappend="'cat-' + ${log.categoryColorIndex()}"
-                      th:text="${log.categoryName()}">CS</span>
+                <a class="entry-category" th:classappend="'cat-' + ${log.categoryColorIndex()}"
+                   th:href="@{/logs(categoryName=${log.categoryName()})}"
+                   th:title="${log.categoryName()} + ' 분야의 기록'"
+                   th:text="${log.categoryName()}">CS</a>
                 <time th:datetime="${log.studyDate()}" th:text="${log.studyDateText()}">8월 6일 (목)</time>
                 <span th:text="${#temporals.format(log.startTime(), 'HH:mm')} + '–'
                         + ${#temporals.format(log.endTime(), 'HH:mm')}">14:00–15:20</span>
                 <span th:text="${log.durationText()}">1시간 20분</span>
             </p>
             <p class="entry-tags" th:unless="${log.tags().isEmpty()}">
-                <span class="session-tag" th:each="tag : ${log.tags()}"
-                      th:text="'#' + ${tag}">#큐</span>
+                <a class="session-tag" th:each="tag : ${log.tags()}"
+                   th:href="@{/logs(tag=${tag})}"
+                   th:title="${tag} + ' 태그의 기록'"
+                   th:text="'#' + ${tag}">#큐</a>
             </p>
         </header>
 
