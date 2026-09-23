@@ -1,19 +1,17 @@
 # study-log
 
+![CI](https://github.com/minky5004/study-log/actions/workflows/ci.yml/badge.svg)
+
 > 공부 시간의 세션 단위 기록 · 쌓인 기록에 검색·통계로 되묻기 — 둘을 겸하는 웹 애플리케이션
 
 **[study-log-n6ez.onrender.com](https://study-log-n6ez.onrender.com)** — 무료 티어 · 첫 접속은
 기동 대기 약 3분 · 뜬 뒤로는 1초 안팎
-
-![CI](https://github.com/minky5004/study-log/actions/workflows/ci.yml/badge.svg)
 
 마크다운 TIL 리포의 대체. 파일의 한계는 둘 — 분야·기간·태그 조합으로 좁히기 불가 · 파일 목록만으로
 꾸준함 확인 불가. DB 이관으로 검색·통계 확보 · 잃을 뻔한 파일 형식은 **마크다운 재내보내기로
 회수**(옵시디언 vault 에서 그대로 열람).
 
 ![홈에서 검색, 상세, 통계까지](docs/screenshots/demo.gif)
-
-![통계 — 일별 잔디 · 주간 추이 · 분야별 · 시간대](docs/screenshots/stats.png)
 
 화면의 130개 세션은 더미 아닌 실제 커밋 이력 — 개인 리포 8개의 커밋을 90분 간격으로 끊어 세션으로
 묶고 마크다운 변환 후 `/import` 업로드.
