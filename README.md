@@ -1,5 +1,7 @@
 # study-log
 
+📎 [Notion 정리](https://app.notion.com/p/3e47b7516d7c818f814ceeace363cee4)
+
 ![CI](https://github.com/minky5004/study-log/actions/workflows/ci.yml/badge.svg)
 
 > 공부 시간의 세션 단위 기록 · 쌓인 기록에 검색·통계로 되묻기 — 둘을 겸하는 웹 애플리케이션
