@@ -75,4 +75,4 @@ study-log/
         └── templates/              home · logs · stats · plans · io · 공통 layout · 프래그먼트
 ```
 
-4계층 단방향 `domain → repository → service → web` · 마크다운 입출력만 `service` 아래 하위 패키지 둘.
+4계층 `domain → repository → service → web` · 서비스 입출력 폼 · 통계 응답은 계층 사이에 걸친 `web/dto` · 마크다운 입출력만 `service` 아래 하위 패키지 둘.
