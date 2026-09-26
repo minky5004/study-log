@@ -27,7 +27,7 @@
 | Database | PostgreSQL (운영 Neon · 로컬 컨테이너) · H2 (로컬 실행) · 스키마는 Flyway |
 | View | Thymeleaf 서버 렌더링(별도 프론트엔드 빌드 없음) · Chart.js · 잔디는 CSS Grid 자체 구현 |
 | Markdown | commonmark-java 렌더링 + jsoup 새니타이즈 |
-| Test | JUnit 5 · DB 에 닿는 테스트는 Testcontainers 의 실제 PostgreSQL 위 |
+| Test | JUnit 6 · DB 에 닿는 테스트는 Testcontainers 의 실제 PostgreSQL 위 |
 | Build · CI | Gradle · GitHub Actions · Docker Compose |
 
 ## 실행
