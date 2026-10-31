@@ -1,6 +1,7 @@
 package com.minky.studylog.config;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 import javax.sql.DataSource;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
-import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -53,8 +53,9 @@ public class SecurityConfig {
      * SPA 쪽 사정이고, 여기서는 Thymeleaf {@code th:action} 이 서버에서 심는다.
      *
      * <p>remember-me 는 영속 토큰 방식이다. 해시 기반은 테이블이 필요 없는 대신 취소 수단이
-     * key 나 비밀번호 교체뿐인데, 이쪽은 쓸 때마다 토큰을 갈아 끼워 탈취된 쿠키의 재사용이
-     * 드러나고 취소가 행 하나를 지우는 일이 된다.
+     * key 나 비밀번호 교체뿐인데, 이쪽은 취소가 행 하나를 지우는 일이 된다. 토큰을 쓸 때마다
+     * 갈아 끼우지 않는 이유는 {@link StableTokenRememberMeServices} 에 있다. key 는 서비스와
+     * 인증 제공자를 잇는 값일 뿐 쿠키 서명에 쓰이지 않아 기동마다 새로 만들어도 로그인이 유지된다.
      */
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, PersistentTokenRepository tokens,
@@ -73,12 +74,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.csrfTokenRepository(new CookieCsrfTokenRepository()))
                 // 유효기간은 기본값(2주) 그대로 둔다 — 쓸 때마다 갱신되므로 매일 여는 도구에서는
                 // 사실상 만료되지 않고, 여기 숫자를 새로 정하면 근거 없는 값이 하나 는다
-                .rememberMe(remember -> remember
-                        .tokenRepository(tokens)
-                        .userDetailsService(users))
-                // 옛 토큰이 한 번 더 왔을 때 500 이 나가는 자리를 막는다 — 근거는 그 클래스에
-                .addFilterBefore(new CookieTheftRedirectFilter(LOGIN_PATH),
-                        RememberMeAuthenticationFilter.class)
+                .rememberMe(remember -> remember.rememberMeServices(
+                        new StableTokenRememberMeServices(UUID.randomUUID().toString(), users, tokens)))
                 // 목록으로 돌려보낸다 — 로그아웃 직후 남는 화면이 로그인 폼이면 방금 한 일과 어긋난다
                 .logout(logout -> logout.logoutSuccessUrl("/logs"));
         return http.build();

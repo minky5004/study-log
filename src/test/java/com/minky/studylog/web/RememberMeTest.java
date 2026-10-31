@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.minky.studylog.support.PostgresTestContainer;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -148,27 +150,65 @@ class RememberMeTest {
     }
 
     /**
-     * 같은 series 의 옛 토큰이 한 번 더 오는 상황. 탭 둘이 열려 있다가 앱이 재기동되면 한쪽이
-     * 토큰을 갈아 끼운 뒤 다른 쪽이 옛 값을 들고 오고, 뒤로 가기 복원이나 재시도도 같은 모양이다.
-     *
-     * <p>{@code AbstractRememberMeServices.autoLogin} 은 이때 쿠키를 지운 뒤
-     * {@code CookieTheftException} 을 다시 던지는데, {@code RememberMeAuthenticationFilter} 의
-     * 예외 표가 {@code autoLogin} 호출을 덮지 않아 그대로 필터 밖으로 나간다. 그러면 이 사이클이
-     * 없애려던 결말이 403 에서 500 으로 자리만 옮긴다.
+     * 같은 쿠키가 한 번 더 오는 상황. 잠든 앱이 깨어날 때 요청이 겹치거나 앞선 응답이 브라우저에
+     * 닿지 못하면 이 모양이 된다. 토큰을 쓸 때마다 갈아 끼우면 두 번째 요청이 도난으로 판정돼
+     * 토큰 행이 전부 지워지고, 로그인 유지를 켜 둔 사람이 로그인 화면으로 밀려난다.
      */
     @Test
-    @DisplayName("옛 토큰이 다시 와도 500 이 아니라 로그인 화면으로")
-    void replayedTokenDoesNotBecomeServerError() throws Exception {
+    @DisplayName("같은 쿠키가 다시 와도 로그인이 유지된다")
+    void repeatedCookieKeepsLogin() throws Exception {
         login(true);
-        Cookie stale = jar.get(REMEMBER_ME_COOKIE);
+        Cookie same = jar.get(REMEMBER_ME_COOKIE);
 
         exchange(get("/logs"));
 
-        jar.put(REMEMBER_ME_COOKIE, stale);
-        MvcResult replayed = exchange(get("/logs/new"));
+        jar.put(REMEMBER_ME_COOKIE, same);
+        MvcResult repeated = exchange(get("/logs/new"));
 
-        assertThat(replayed.getResponse().getStatus()).isEqualTo(302);
-        assertThat(replayed.getResponse().getRedirectedUrl()).endsWith("/login");
+        assertThat(repeated.getResponse().getStatus()).isEqualTo(200);
+        assertThat(tokenRows()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("토큰 값이 틀린 쿠키는 로그인 화면으로 · 공개 화면은 그대로 열린다")
+    void wrongTokenFallsBackToAnonymous() throws Exception {
+        login(true);
+        jar.put(REMEMBER_ME_COOKIE, tamperedCookie());
+
+        MvcResult write = exchange(get("/logs/new"));
+
+        assertThat(write.getResponse().getStatus()).isEqualTo(302);
+        assertThat(write.getResponse().getRedirectedUrl()).endsWith("/login");
+        assertThat(tokenRows()).isEqualTo(1);
+
+        jar.put(REMEMBER_ME_COOKIE, tamperedCookie());
+        assertThat(exchange(get("/logs")).getResponse().getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("마지막 사용에서 2주가 지난 쿠키는 로그인 화면으로")
+    void expiredTokenIsRejected() throws Exception {
+        login(true);
+        jdbc.update("update persistent_logins set last_used = now() - interval '15 days'");
+
+        MvcResult write = exchange(get("/logs/new"));
+
+        assertThat(write.getResponse().getStatus()).isEqualTo(302);
+        assertThat(write.getResponse().getRedirectedUrl()).endsWith("/login");
+    }
+
+    @Test
+    @DisplayName("쓸 때마다 유효기간이 늘어난다")
+    void useExtendsValidity() throws Exception {
+        login(true);
+        jdbc.update("update persistent_logins set last_used = now() - interval '13 days'");
+
+        MvcResult page = exchange(get("/logs"));
+
+        assertThat(page.getResponse().getCookie(REMEMBER_ME_COOKIE)).isNotNull();
+        assertThat(jdbc.queryForObject(
+                "select last_used > now() - interval '1 minute' from persistent_logins",
+                Boolean.class)).isTrue();
     }
 
     private MvcResult login(boolean remember) throws Exception {
@@ -198,6 +238,14 @@ class RememberMeTest {
             }
         }
         return result;
+    }
+
+    /** 쿠키 값은 {@code series:token} 의 Base64 다. series 는 두고 토큰만 틀린 값으로 바꾼다. */
+    private Cookie tamperedCookie() {
+        String series = jdbc.queryForObject("select series from persistent_logins", String.class);
+        String encoded = Base64.getEncoder().withoutPadding()
+                .encodeToString((series + ":wrong").getBytes(StandardCharsets.UTF_8));
+        return new Cookie(REMEMBER_ME_COOKIE, encoded);
     }
 
     private int tokenRows() {
