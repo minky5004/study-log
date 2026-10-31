@@ -2,7 +2,10 @@ package com.minky.studylog.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Date;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.rememberme.InvalidCookieException;
@@ -40,15 +43,25 @@ class StableTokenRememberMeServices extends PersistentTokenBasedRememberMeServic
             throw new InvalidCookieException("Cookie token did not contain 2 tokens");
         }
         PersistentRememberMeToken token = tokens.getTokenForSeries(cookieTokens[0]);
-        if (token == null || !token.getTokenValue().equals(cookieTokens[1])) {
+        if (token == null || !matches(token.getTokenValue(), cookieTokens[1])) {
             throw new RememberMeAuthenticationException("Unknown remember-me token");
         }
         long expiresAt = token.getDate().getTime() + getTokenValiditySeconds() * 1000L;
         if (expiresAt < System.currentTimeMillis()) {
             throw new RememberMeAuthenticationException("Remember-me login has expired");
         }
-        tokens.updateToken(token.getSeries(), token.getTokenValue(), new Date());
+        try {
+            tokens.updateToken(token.getSeries(), token.getTokenValue(), new Date());
+        } catch (DataAccessException ex) {
+            // 이 예외만 autoLogin 이 삼켜 익명으로 이어 간다 — 그대로 두면 공개 화면까지 500
+            throw new RememberMeAuthenticationException("Autologin failed due to data access problem", ex);
+        }
         setCookie(cookieTokens, getTokenValiditySeconds(), request, response);
         return getUserDetailsService().loadUserByUsername(token.getUsername());
+    }
+
+    private static boolean matches(String expected, String presented) {
+        return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
+                presented.getBytes(StandardCharsets.UTF_8));
     }
 }

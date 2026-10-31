@@ -62,7 +62,7 @@ class RememberMeTest {
     @Autowired MockMvc mockMvc;
     @Autowired JdbcTemplate jdbc;
 
-    /** 브라우저 자리. remember-me 토큰이 쓸 때마다 갈리므로 응답이 준 쿠키를 다음 요청에 싣는다. */
+    /** 브라우저 자리. 응답이 준 쿠키를 다음 요청에 싣는다. */
     private final Map<String, Cookie> jar = new LinkedHashMap<>();
 
     @BeforeEach
@@ -183,6 +183,19 @@ class RememberMeTest {
 
         jar.put(REMEMBER_ME_COOKIE, tamperedCookie());
         assertThat(exchange(get("/logs")).getResponse().getStatus()).isEqualTo(200);
+    }
+
+    /** 토큰을 고정한 대가로 남긴 취소 수단. 쿠키가 살아 있어도 행이 없으면 통하지 않아야 한다. */
+    @Test
+    @DisplayName("토큰 행을 지우면 남아 있는 쿠키는 로그인 화면으로")
+    void deletedRowRevokesCookie() throws Exception {
+        login(true);
+        jdbc.execute("delete from persistent_logins");
+
+        MvcResult write = exchange(get("/logs/new"));
+
+        assertThat(write.getResponse().getStatus()).isEqualTo(302);
+        assertThat(write.getResponse().getRedirectedUrl()).endsWith("/login");
     }
 
     @Test
