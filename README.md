@@ -63,7 +63,7 @@ study-log/
 ├── compose.yaml · Dockerfile       앱 + PostgreSQL · 프로파일 바닥값 prod
 └── src/main/
     ├── java/com/minky/studylog/
-    │   ├── config/                 관리자 계정 · 권한 바닥값 · 옛 remember-me 토큰은 로그인 화면으로
+    │   ├── config/                 관리자 계정 · 권한 바닥값 · 고정 토큰 remember-me
     │   ├── domain/                 엔티티 · 자정 넘김 시간 계산 · 태그 순서 컬럼
     │   ├── repository/             조회 · 통계 group by
     │   ├── service/                CRUD · 분야/태그 정규화 · 통계 집계 · 마크다운 렌더 + 새니타이즈
